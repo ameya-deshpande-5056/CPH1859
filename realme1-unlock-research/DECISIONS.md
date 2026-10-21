@@ -61,3 +61,17 @@
   3. Formally catalog the specific reverse-engineering analyses that remain blocked pending offline firmware acquisition.
 - **Reason:** Adheres strictly to scientific integrity; a failed search or absent binary is not proof that no vulnerability exists.
 - **Alternatives Rejected:** Declaring software unlock "mathematically impossible" (unsubstantiated certainty); fabricating simulated disassembly of unavailable images (scientific misconduct).
+
+---
+
+### DEC-007: C.49 Little Kernel Container & Static Execution Boundary Calibration
+- **Date:** 2026-10-21
+- **Status:** APPROVED / CURRENT
+- **Context:** Extracted C.49 firmware packages (`lk.img`, `preloader_oppo6771_17065.bin`, `MT6771_Android_scatter.txt`) were provided for static reverse engineering. Initial assumptions regarding load address (`0x200` vs `0x60000000`) and disassembler availability required empirical validation.
+- **Decision:**
+  1. Formally record the container format of `lk.img` as MediaTek Image Header (`union prt_img_hdr`, magic `0x58881688`/`0x58891689`, 512-byte header, 749,772-byte payload, followed by two 512-byte certificate containers `cert1` and `cert2`).
+  2. Confirm base DRAM execution address as `0x60000000` via bootstrap CP15 setup and self-relocation loop disassembly.
+  3. Confirm processor architecture as ARMv7-A 32-bit Little Endian, with ARM state reset vector transitioning via `blx #0x6002a944` into Thumb-2 state at `kmain()`.
+  4. Standardize on Python 3 + Capstone 5.0.7 (verified locally present in pyenv) as the primary reproducible static disassembly toolchain.
+- **Reason:** Grounded in direct static binary disassembly without guessing load addresses or relying on unavailable external tools.
+- **Alternatives Rejected:** Assuming load address is `0x200` or raw binary offset (would cause incorrect memory offsets); guessing toolchain requirements without testing local pyenv packages.

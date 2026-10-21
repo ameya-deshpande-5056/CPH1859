@@ -72,13 +72,12 @@ adb shell "head -c 16 /dev/block/by-name/lk"
 # Result: head: /dev/block/by-name/lk: Permission denied
 ```
 
-### Specifically Blocked Analyses
-Because raw partition images cannot be read over unprivileged ADB (`shell` UID 2000) and no local firmware dump exists:
-1. **String Cross-Reference Tracing:** Locating the exact file offsets and calling instructions for `the serial is not match` and `fastboot_unlock_verity fail` in `lk.img` is blocked.
-2. **Control-Flow Graph Analysis:** Mapping the caller/callee tree of the verification function in Ghidra/radare2 is blocked.
-3. **Cryptographic Token Disassembly:** Determining the exact key modulus, hash algorithm, and storage offset used to validate the serial number is blocked.
-4. **Preloader USB Command Loop Analysis:** Decompiling the USB packet handlers in `preloader_cph1859.bin` to check for unpatched buffer overflows is blocked.
-5. **C.49 vs C.50 Comparative Diffing:** Binary comparison to isolate exact patches applied to C.50 is blocked.
+### Specifically Blocked Analyses (C.50) & C.49 Baseline Established
+While C.50 partition images remain unextractable from the live device without elevated privileges:
+1. **C.49 Baseline Fully Characterized:** Extracted C.49 binaries (`lk.img`, `preloader_oppo6771_17065.bin`) were successfully analyzed in `artifacts/c49_bootloader_format_analysis.md` (ART-007). The container layout was proven to be MediaTek `union prt_img_hdr` (512-byte header, 749,772-byte payload, followed by two 512-byte certificate containers `cert1` and `cert2`), running at base DRAM address `0x60000000` with ARMv7/Thumb-2 state switching.
+2. **Fastboot Gatekeeper Located:** In C.49 LK, `fastboot_init()` at `0x60030018` calls `0x6002eb00`, which reads the efuse board serial and validates an OEM RSA-signed token. On failure, it outputs `fastboot_unlock_verify fail\n\n` and immediately invokes `0x6000cd30` (forced reboot), preventing factory devices from remaining in fastboot.
+3. **Unlock Logic & FRP Flag Offset Traced:** Handlers for `flashing get_unlock_ability` (`0x60036518`) and `flashing unlock` (`0x60036648`) query `0x60036390`, which reads the 4-byte flag from `partition_size - 4` of the `"frp"` partition.
+4. **C.49 vs C.50 Comparative Diffing Blocked:** Sourcing the exact C.50 `lk.img` remains required to resolve whether the live on-screen message `fastboot_unlock_verity fail` (spelled with a `t`) represents a string rename or a separate AVB verity check.
 
 ---
 

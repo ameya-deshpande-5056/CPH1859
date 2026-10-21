@@ -1,42 +1,43 @@
 # Next Agent Handoff: Realme 1 (CPH1859) Bootloader Unlock Research
 
 ## Current Objective
-Phase 2 reverse-engineering feasibility audit and evidence calibration are **COMPLETE**. The formal outcome **`BLOCKED BY MISSING FIRMWARE OR ACCESS`** (with secondary finding `NO VIABLE ROUTE FOUND WITH CURRENT EVIDENCE`) has been established.
+Phase 3 static reverse engineering of the extracted C.49 bootloader binaries is **COMPLETE**. The container format, memory layout, architecture, ARM/Thumb state transitions, fastboot gatekeeper logic, and unlock permission pathways have been fully characterized and documented in `artifacts/c49_bootloader_format_analysis.md`.
 
 ## Current Status
 - **Confirmed Results:**
-  - Full epistemic audit completed (`artifacts/evidence_audit.md`), mapping all 16 claims to the 5 epistemic levels (`directly observed`, `independently verified`, `source-reported`, `inferred`, `unsubstantiated`).
-  - Unsupported certainty ("mathematically/technically impossible") formally excised from all project documentation.
-  - Absence of local C.50 ROM packages confirmed; target device partition block nodes (`/dev/block/by-name/lk`) verified to be `root:root` mode `0600`, blocking unprivileged ADB partition dumping (`artifacts/firmware_access_blockage.md`).
-  - Four candidate vulnerability vectors evaluated in `REPORT.md` Section 3.
+  - `lk.img` verified as MediaTek `union prt_img_hdr` container (magic `0x58881688`/`0x58891689`, 512-byte header, 749,772-byte payload, followed by two 512-byte certificate containers `cert1` at `0xb72d0` and `cert2` at `0xb7b80`).
+  - Base DRAM execution address proven to be `0x60000000` via self-relocation loop disassembly.
+  - Architecture: 32-bit ARMv7-A Little Endian; reset entry in ARM mode at `0x60000000`, switching via `blx #0x6002a944` into Thumb-2 at `kmain()`.
+  - Fastboot gatekeeper traced: `fastboot_init()` (`0x60030018`) calls `0x6002eb00` to verify efuse board serial against an OEM RSA-signed token. If failed, prints `fastboot_unlock_verify fail\n\n` and immediately reboots via `0x6000cd30`.
+  - Unlock command handlers traced: `flashing get_unlock_ability` (`0x60036518`) and `flashing unlock` (`0x60036648`) call `0x60036390`, which reads the 4-byte flag from `partition_size - 4` of `"frp"` (`unlock_allowed_flag_offset: 0x%llx`).
+  - Capstone 5.0.7 verified present in host pyenv Python 3.13 (`~/.pyenv/versions/3.13.16/lib/python3.13/site-packages/capstone`).
   - Target device remains unmodified in factory state (`ro.boot.flash.locked = 1`).
-- **Formal Project Outcome:** **`BLOCKED BY MISSING FIRMWARE OR ACCESS`**.
 
 ## Last Verified Result
+- Reverse engineering artifact: `artifacts/c49_bootloader_format_analysis.md` (SHA-256: `907ba86703614d22a34e8366ad90dca75911b732642f2c51bc543deb7cc20cd2`).
 - Evidence audit artifact: `artifacts/evidence_audit.md` (SHA-256: `0a1a65c800be18255f42d26d458af67c2f111308afa4b73f99b29f500faac8ab`).
 - Access blockage artifact: `artifacts/firmware_access_blockage.md` (SHA-256: `3f0a3421f2496134535f10ae81c72d0665a5dc1036166e2f5fba90ebe10b39a2`).
-- Updated report: `REPORT.md`.
 
 ## Work Completed
-- Tasks `T001` through `S003` (Phase 1) and `A001` through `S004` (Phase 2) are all marked **DONE**.
-- 10 external sources indexed in `sources/README.md`.
-- 6 research artifacts indexed with SHA-256 checksums in `artifacts/README.md`.
+- Tasks `T001` through `S003` (Phase 1), `A001` through `S004` (Phase 2), and `F003` (Phase 3) are marked **DONE**.
+- 7 research artifacts indexed in `artifacts/README.md`.
 - Read-only diagnostic CLI tool `realme1-unlock-research` tested with 13/13 passing tests.
 
 ## Work in Progress
-None. All objectives for Phase 1 and Phase 2 are complete.
+None. Phase 3 static analysis complete.
 
 ## Known Failures & Blockers
-- **Offline Reverse Engineering:** Blocked by absence of decrypted `lk.img` / `preloader.bin` binaries for C.50.
+- **C.50 vs C.49 Binary Diffing:** Blocked by absence of decrypted `lk.img` / `preloader.bin` binaries for C.50.
 - **Online Partition Extraction:** Blocked by Android DAC permissions (`root:root`) and SELinux on `/dev/block/mmcblk0p33`.
-- **Fastboot Execution:** Blocked by Little Kernel serial verity check (`fastboot_unlock_verity fail`).
+- **Fastboot Execution:** Blocked by Little Kernel efuse serial token check (`fastboot_unlock_verify fail`).
 - **BootROM Entry:** Blocked by Preloader mediation; requires hardware testpoint grounding if software crash payloads are rejected.
 
 ## Open Questions
-- What exact cryptographic signature algorithm and key modulus does ColorOS C.50 Little Kernel use to validate the unlock token? (Requires offline disassembly of `lk.img` once a C.50 ROM package is sourced).
+- Does ColorOS C.50 `lk.img` contain the string `fastboot_unlock_verity` (with a `t`) or `fastboot_unlock_verify` (with an `f`), and did C.50 alter the token verification routine in `0x6002eb00`? (Requires sourcing full C.50 OTA `.ozip` and decrypting offline).
 
 ## Next Action
-Present the completed Phase 2 reverse-engineering audit, firmware inventory findings, and calibrated feasibility outcome to the user.
+1. Present C.49 bootloader binary format, memory layout, and disassembly findings to user.
+2. Outline C.50 firmware acquisition strategy to obtain decrypted C.50 ROM packages for binary diffing.
 
 ## Acceptance Criteria
 - Deliver comprehensive summary directly addressing all points in Phase 2 prompt.

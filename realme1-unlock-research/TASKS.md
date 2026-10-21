@@ -19,6 +19,28 @@
 | **F002** | Firmware inventory & raw partition access audit | **DONE** | S003 | Phase 2 |
 | **V001** | Vulnerability assessment & preloader/LK security review | **DONE** | A001, F002 | Phase 2 |
 | **S004** | Calibrated report synthesis & formal outcome deliverable | **DONE** | V001 | Phase 2 |
+| **F003** | C.49 Little Kernel container layout & static reverse engineering | **DONE** | S004 | Phase 3 |
+| **C001** | C.50 firmware acquisition & comparative diffing | **PENDING** | F003 | Phase 3 |
+
+---
+
+## Phase 3 Task Details
+
+### F003: C.49 Little Kernel Container Layout & Static Reverse Engineering
+- **Status:** DONE
+- **Objective:** Perform static, read-only reverse engineering on extracted C.49 bootloader binaries (`lk.img`, `preloader_oppo6771_17065.bin`, `MT6771_Android_scatter.txt`). Identify container format, payload boundaries, base load address, processor architecture, instruction mode switches, and reconstruct fastboot token verification / unlock permission logic.
+- **Required Inputs:** `~/Realme1/C49_extracted/lk.img`, `preloader_oppo6771_17065.bin`, `MT6771_Android_scatter.txt`.
+- **Actions Performed:** Verified SHA-256 hashes; identified MediaTek `union prt_img_hdr` container layout (magic `0x58881688`/`0x58891689`, payload size `0x000b70cc`, `cert1` at `0xb72d0`, `cert2` at `0xb7b80`); disassembled ARMv7 exception vectors and self-relocation routine proving DRAM base `0x60000000`; traced mode switch to Thumb-2 at `kmain()` (`0x6002a944`); disassembled `fastboot_init()` at `0x60030018` and token verifier `0x6002eb00`; disassembled `flashing get_unlock_ability` (`0x60036518`) and `flashing unlock` (`0x60036648`); confirmed `frp` partition flag offset; produced artifact `artifacts/c49_bootloader_format_analysis.md`.
+- **Evidence & Artifact References:** `artifacts/c49_bootloader_format_analysis.md` (SHA-256: `907ba86703614d22a34e8366ad90dca75911b732642f2c51bc543deb7cc20cd2`).
+- **Result & Confidence Level:** Complete, 100% confidence.
+
+---
+
+### C001: C.50 Firmware Acquisition & Comparative Diffing
+- **Status:** PENDING / BLOCKED ON C.50 ARTIFACTS
+- **Objective:** Sourcing verified CPH1859 C.50 full OTA package (`.ozip`), decrypting using `bkerler/oppo_ozip_decrypt`, and performing binary diffing between C.49 and C.50 `lk.img` to resolve the `fastboot_unlock_verify` vs `fastboot_unlock_verity` string discrepancy and confirm whether token verification checks were altered.
+- **Required Inputs:** `CPH1859EX_11_OTA_0500_all_*.ozip` or verified partition dump.
+- **Current Blocker:** C.50 full package not yet sourced in local workspace.
 
 ---
 

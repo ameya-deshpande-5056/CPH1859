@@ -2,32 +2,30 @@
 
 ## Authoritative Progress Indicator
 
-- **Project Status:** RESEARCH COMPLETE / FORMAL OUTCOME DELIVERED
-- **Current Phase:** Phase 2: Evidence Audit & Firmware Reverse Engineering Feasibility
-- **Current Task ID & Description:** S004: Calibrated report synthesis & formal outcome deliverable
-- **Overall Completion Estimate:** 100% (All Phase 1 and Phase 2 research, evidence audit, diagnostic tooling, and firmware accessibility assessments complete)
-- **Last Completed Milestone:** Epistemic Evidence Audit, Firmware Access Blockage Report, and Calibrated Synthesis delivered
-- **Formal Project Outcome:** **`BLOCKED BY MISSING FIRMWARE OR ACCESS`**  
-  *(Secondary finding: `NO VIABLE ROUTE FOUND WITH CURRENT EVIDENCE` across documented software-only vectors)*
-- **Primary Technical Blockers Identified:**
-  1. **Static Analysis Blockage:** Exact CPH1859 C.50 binary images (`lk.img`, `preloader.bin`) are not present in local directories, and raw block devices (`/dev/block/by-name/lk`) are restricted by Android DAC (`brw------- root:root`) and SELinux, blocking unprivileged ADB partition dumping.
-  2. **Fastboot Execution Blockage:** Little Kernel directly enforces an OEM cryptographic token check matching the hardware serial number (`the serial is not match / fastboot_unlock_verity fail`), aborting into normal boot.
-  3. **Vendor Infrastructure Decommissioning:** The official In-Depth Test backend server infrastructure is permanently offline.
-  4. **BootROM Mediation Blockage:** Preloader mediates all USB connections, blocking ungrounded software transitions to BootROM mode.
+- **Project Status:** ACTIVE RESEARCH / PHASE 3 STATIC REVERSE ENGINEERING COMPLETE
+- **Current Phase:** Phase 3: C.49 Firmware Container Analysis & Static Binary Reverse Engineering
+- **Current Task ID & Description:** F003: C.49 Little Kernel container layout & static reverse engineering
+- **Overall Completion Estimate:** 100% of Phase 1, Phase 2, and Phase 3 static binary analysis tasks
+- **Last Completed Milestone:** Static reverse engineering of C.49 Little Kernel container format, DRAM memory map (`0x60000000`), ARM/Thumb mode transitions, and fastboot verification / unlock logic delivered in `artifacts/c49_bootloader_format_analysis.md`.
+- **Formal Project Outcome:** **`BLOCKED BY MISSING FIRMWARE OR ACCESS`** (for software-only unlock on live C.50 device; C.49 static baseline fully characterized).
+- **Primary Technical Findings:**
+  1. **Container Architecture:** `lk.img` uses 512-byte MediaTek Image Headers (`union prt_img_hdr`, magic `0x58881688`/`0x58891689`) containing a 749,772-byte executable payload (`0x000b70cc`), followed by two 512-byte certificate containers (`cert1` at `0xb72d0` and `cert2` at `0xb7b80`). Total file size: 753,984 bytes.
+  2. **Execution Layout & Mode Switch:** 32-bit ARMv7-A Little Endian executing at base DRAM address `0x60000000`. Reset vector at `0x60000000` (file `0x200`) runs in 32-bit ARM mode to disable CP15 caches/MMU, perform self-relocation, initialize mode stacks, and zero BSS, transitioning via `blx #0x6002a944` into Thumb-2 mode for `kmain()`.
+  3. **Fastboot Gatekeeper Identified:** `fastboot_init()` at `0x60030018` calls `0x6002eb00` to verify an OEM cryptographic token matching the efuse board serial number. In absence of a valid token, it prints `fastboot_unlock_verify fail\n\n` and immediately reboots via `0x6000cd30`, preventing factory devices from remaining in fastboot.
+  4. **Unlock Permission Path:** `flashing get_unlock_ability` (`0x60036518`) and `flashing unlock` (`0x60036648`) query `0x60036390`, which reads the 4-byte flag from `partition_size - 4` of the `"frp"` partition (`unlock_allowed_flag_offset: 0x%llx`).
+  5. **Disassembler Toolchain:** Verified local Pyenv Python 3.13 with Capstone 5.0.7 as the lightweight, non-invasive static disassembly suite on Linux Mint.
 - **Next Three Actions (Prioritized):**
-  1. Review calibrated findings in `REPORT.md` and claim taxonomy in `artifacts/evidence_audit.md`.
-  2. To unblock static reverse engineering in the future, source a verified copy of `CPH1859EX_11_C.50.ozip` and decrypt offline using `bkerler/oppo_ozip_decrypt`.
-  3. If hardware constraints are ever relaxed, evaluate testpoint shorting (DAT0/CLK) for `mtkclient` BROM access.
-- **Last Updated:** 2026-10-21T10:43:00+05:30
+  1. Review verified container format and disassembly findings in `artifacts/c49_bootloader_format_analysis.md`.
+  2. Formulate C.50 firmware acquisition strategy to obtain decrypted C.50 `lk.img` for binary diffing and resolution of `fastboot_unlock_verify` vs `verity`.
+  3. Continue maintaining strict non-invasive, read-only posture on the target device.
+- **Last Updated:** 2026-10-21T12:22:00+05:30
 - **Current Git Branch:** main
-- **Latest Relevant Commit:** `f55ede5` ("Phase 2: Complete epistemic evidence audit, firmware blockage assessment, and calibrated report")
 - **Relevant Artifact Paths:**
+  - `realme1-unlock-research/artifacts/c49_bootloader_format_analysis.md` (ART-007)
+  - `realme1-unlock-research/artifacts/evidence_audit.md` (ART-005)
+  - `realme1-unlock-research/artifacts/firmware_access_blockage.md` (ART-006)
   - `realme1-unlock-research/REPORT.md`
-  - `realme1-unlock-research/artifacts/evidence_audit.md`
-  - `realme1-unlock-research/artifacts/firmware_access_blockage.md`
-  - `realme1-unlock-research/artifacts/diagnostic_report.md`
-  - `realme1-unlock-research/artifacts/diagnostic_report.json`
-  - `realme1-unlock-research/sources/README.md`
+  - `realme1-unlock-research/DECISIONS.md`
 - **Phone Modification Status:** UNMODIFIED (Phone remains in 100% factory state; strictly zero writes, erases, or flashes performed)
 
 ---

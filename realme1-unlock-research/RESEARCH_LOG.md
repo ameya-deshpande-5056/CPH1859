@@ -84,3 +84,26 @@
      - Preloader crash patch: Inferred from 2020 MT6771 patch history and C.50 build date (October 2020); not experimentally tested on this device.
      - Hardware testpoint requirement: Source-reported from repair documentation.
 - **Formal Outcome:** Formally selected **`BLOCKED BY MISSING FIRMWARE OR ACCESS`** (with secondary note: `NO VIABLE ROUTE FOUND WITH CURRENT EVIDENCE`). Unsupported claims of mathematical impossibility removed.
+
+---
+
+## 2026-10-21 - Phase 3: C.49 Firmware Container Analysis & Static Binary Reverse Engineering
+
+- **Context:** Extracted C.49 firmware artifacts located in `~/Realme1/C49_extracted/` (`lk.img`, `preloader_oppo6771_17065.bin`, `MT6771_Android_scatter.txt`).
+- **Commands Executed:**
+  ```bash
+  # Check hashes
+  sha256sum /home/ameya/Realme1/C49_extracted/lk.img /home/ameya/Realme1/C49_extracted/preloader_oppo6771_17065.bin
+  # Parse container headers
+  python3 -c "import struct; ..."
+  # Disassemble bootstrap & fastboot gating
+  python3 -c "import capstone; ..."
+  ```
+- **Observed Findings:**
+  1. Verified SHA-256 hashes match authoritative records (`lk.img`: `30b48cd52b5d...`, `preloader`: `afe99890545f...`).
+  2. Identified MediaTek Image Header (`union prt_img_hdr`, magic `0x58881688`/`0x58891689`, 512 bytes) wrapping a 749,772-byte payload, followed by two 512-byte certificate containers (`cert1` at `0xb72d0`, `cert2` at `0xb7b80`).
+  3. Identified 32-bit ARMv7-A Little Endian execution at base DRAM address `0x60000000`. Bootstrap code at `0x200` executes CP15 SCTLR cache/MMU disable, self-relocation loop, stack setup, and BSS zeroing, switching to Thumb-2 via `blx #0x6002a944` into `kmain()`.
+  4. Disassembled fastboot verification in `fastboot_init()` at `0x60030018`: calls `0x6002eb00` to verify efuse board serial against OEM RSA-signed token. On failure, outputs `fastboot_unlock_verify fail\n\n` and immediately reboots via `0x6000cd30`.
+  5. Disassembled `flashing get_unlock_ability` (`0x60036518`) and `flashing unlock` (`0x60036648`): queries `0x60036390`, which reads the 4-byte flag from `partition_size - 4` of the `"frp"` partition (`unlock_allowed_flag_offset: 0x%llx`).
+  6. Discovered that pyenv Python 3.13 already contains Capstone 5.0.7, establishing a non-invasive, reproducible disassembly environment on Linux Mint.
+  7. Produced comprehensive research artifact `artifacts/c49_bootloader_format_analysis.md` (ART-007).
