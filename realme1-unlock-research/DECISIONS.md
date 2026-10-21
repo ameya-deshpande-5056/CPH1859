@@ -75,3 +75,18 @@
   4. Standardize on Python 3 + Capstone 5.0.7 (verified locally present in pyenv) as the primary reproducible static disassembly toolchain.
 - **Reason:** Grounded in direct static binary disassembly without guessing load addresses or relying on unavailable external tools.
 - **Alternatives Rejected:** Assuming load address is `0x200` or raw binary offset (would cause incorrect memory offsets); guessing toolchain requirements without testing local pyenv packages.
+
+---
+
+### DEC-008: C.49 Detailed Findings Audit, Token Storage Coordinates & Failure Path Scope
+- **Date:** 2026-10-21
+- **Status:** APPROVED / CURRENT
+- **Context:** An independent audit of Phase 3 findings was conducted to verify token storage coordinates, cryptographic implementation, hardware project variant relationships, and destructive failure paths.
+- **Decision:**
+  1. Correct token sector offset: `read_reserve4` (`0x6002c794`) adds base sector `0x7800` to argument `0x16`, establishing the actual token location as **sector `0x7816`** (`0x00f02c00` bytes into partition `reserve4`).
+  2. Confirm public key location: The OEM RSA-2048 public key modulus is embedded in `.rodata` at RAM **`0x6007ee48`** (file offset `0x7f048`), pointed to by `.data` address `0x600b6b18`.
+  3. Correct `clean_flash_unlock_data` caller scope: `clean_flash_unlock_data` (`0x6002eacc`) is called **strictly from `cmd_flashing_lock()` at `0x60036920`** during intentional user relocking (`fastboot flashing lock`). It is **not** called upon token verification failure.
+  4. Confirm fastboot abort mechanism: Token verification failure in `fastboot_init()` calls `0x6000cd30` (`mtk_arch_reset`), writing magic `0x1971` to the MediaTek Watchdog Timer at `0x10007000`/`0x10007008` to force an immediate hard reboot.
+  5. Confirm project variant scope: The firmware is built on the unified `oppo6771_17065` codebase (`Common_software_project="17065"`), confirmed by connected device properties (`ro.separate.soft = 17066`, `vendor.gsm.project.baseband = OPPO6771_17065`). Findings apply equally across CPH1859 and sister sub-models.
+- **Reason:** Rigorous, instruction-by-instruction verification correcting earlier preliminary drafting hypotheses.
+- **Alternatives Rejected:** Assuming relative sector `0x16` was absolute without tracing partition driver offset arithmetic; asserting `clean_flash_unlock_data` was reached on failed boot without tracing all call xrefs.

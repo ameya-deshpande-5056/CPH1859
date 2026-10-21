@@ -74,16 +74,27 @@ adb shell "head -c 16 /dev/block/by-name/lk"
 
 ### Specifically Blocked Analyses (C.50) & C.49 Baseline Established
 While C.50 partition images remain unextractable from the live device without elevated privileges:
-1. **C.49 Baseline Fully Characterized:** Extracted C.49 binaries (`lk.img`, `preloader_oppo6771_17065.bin`) were successfully analyzed in `artifacts/c49_bootloader_format_analysis.md` (ART-007). The container layout was proven to be MediaTek `union prt_img_hdr` (512-byte header, 749,772-byte payload, followed by two 512-byte certificate containers `cert1` and `cert2`), running at base DRAM address `0x60000000` with ARMv7/Thumb-2 state switching.
-2. **Fastboot Gatekeeper Located:** In C.49 LK, `fastboot_init()` at `0x60030018` calls `0x6002eb00`, which reads the efuse board serial and validates an OEM RSA-signed token. On failure, it outputs `fastboot_unlock_verify fail\n\n` and immediately invokes `0x6000cd30` (forced reboot), preventing factory devices from remaining in fastboot.
-3. **Unlock Logic & FRP Flag Offset Traced:** Handlers for `flashing get_unlock_ability` (`0x60036518`) and `flashing unlock` (`0x60036648`) query `0x60036390`, which reads the 4-byte flag from `partition_size - 4` of the `"frp"` partition.
-4. **C.49 vs C.50 Comparative Diffing Blocked:** Sourcing the exact C.50 `lk.img` remains required to resolve whether the live on-screen message `fastboot_unlock_verity fail` (spelled with a `t`) represents a string rename or a separate AVB verity check.
+1. **C.49 Baseline Fully Characterized & Audited:** Extracted C.49 binaries (`lk.img`, `preloader_oppo6771_17065.bin`) were analyzed and audited in `artifacts/c49_bootloader_format_analysis.md` (ART-007). The container layout was proven to be MediaTek `union prt_img_hdr` (512-byte header, 749,772-byte payload, followed by two 512-byte certificate containers `cert1` and `cert2`), running at base DRAM address `0x60000000` with ARMv7/Thumb-2 state switching.
+2. **Fastboot Gatekeeper & Hardware WDT Reset:** In C.49 LK, `fastboot_init()` at `0x60030018` calls `0x6002eb00`, which reads the efuse board serial and validates an OEM RSA-2048/SHA-256 token read from sector `0x7816` (`0x00f02c00` bytes) of partition `reserve4`. On failure, it outputs `fastboot_unlock_verify fail\n\n` and calls `0x6000cd30` (`mtk_arch_reset`), writing magic `0x1971` to the hardware watchdog timer (`0x10007000`/`0x10007008`) to force an immediate reboot to normal ColorOS.
+3. **Relocking Path & `clean_flash_unlock_data` Scope:** `clean_flash_unlock_data` (`0x6002eacc`) is called strictly during relocking (`cmd_flashing_lock` at `0x60036920`), zeroing the 4 KB token slot at sector `0x7816` of `reserve4`. It is never called on failed boot.
+4. **Unlock Logic & FRP Flag Offset Traced:** Handlers for `flashing get_unlock_ability` (`0x60036518`) and `flashing unlock` (`0x60036648`) query `0x60036390`, which reads the 4-byte flag from `partition_size - 4` of the `"frp"` partition.
+5. **C.49 vs C.50 Comparative Diffing Blocked:** Sourcing the exact C.50 `lk.img` remains required to resolve whether the live on-screen message `fastboot_unlock_verity fail` (spelled with a `t`) represents a string rename or a separate AVB verity check. Public C.50 downloads are no longer accessible on official portals post-EOL.
 
 ---
 
-## 3. Vulnerability & Attack Surface Assessment
+## 3. Vulnerability & Attack Surface Assessment (Software-Only Routes & Prerequisites)
 
-Four candidate attack vectors were systematically evaluated:
+Five potential routes were systematically evaluated against explicit prerequisites and verified device evidence:
+
+### Prerequisite Classification Matrix
+
+| Route Category | Proposed Route | Explicit Prerequisite | Verified Device Evidence | Status & Unknowns / Blockers |
+|---|---|---|---|---|
+| **Supported OEM Authorization** | In-Depth Test (DeepTesting) Client-Server Handshake | Live backend signing server issuing RSA-2048 token matching hardware serial; client APK compatibility on C.50 | Token verifier `0x6002eb00` verifies RSA-2048/SHA-256 token at sector `0x7816` of `reserve4`; device properties show `ro.oem_unlock_supported = 1` | **BLOCKED:** Servers permanently offline post-2020 EOL; private key undisclosed; C.50 community-reported incompatible with legacy APK |
+| **Ordinary Android / ADB Access** | Partition Write via ADB shell | Elevated local privilege (root) or permissive block node permissions to write to `reserve4`, `lk`, or `frp` | Block nodes `/dev/block/by-name/{lk,reserve4,frp}` are strictly mode `0600 root:root`; ADB runs as UID 2000 (`shell`); SELinux `Enforcing` | **BLOCKED:** Unprivileged ADB cannot read or write raw partitions (`Permission denied`); zero verified LPE exploits on Android 9 Sept 2020 patch |
+| **Fastboot Command Access** | Standard Fastboot Protocol (`flashing unlock`) | Device remains in Fastboot mode over USB, accepting command packets | `fastboot_init()` calls `verify_unlock_token()`, fails due to absent token, prints `fastboot_unlock_verify fail` (or `verity`), and triggers hardware watchdog reset | **BLOCKED:** Device immediately aborts Fastboot and reboots to normal ColorOS before commands can be processed |
+| **Demonstrated Software Vulnerability** | In-Memory Patch / Memory Corruption in LK | Working unauthenticated software exploit bypassing memory protections in ColorOS kernel or Little Kernel | Static analysis confirms patching `0x6002eb00` to return `0` (`movs r0, #0; bx lr`) would bypass check | **BLOCKED:** Modifying LK on flash is rejected by preloader AVB; no remote/local software-only memory exploit demonstrated on C.50 |
+| **BootROM / Preloader-Level Access** | MediaTek BootROM USB Control Transfer Exploit (CVE-2020-0069) | USB device connection in true BootROM mode (`0e8d:0003`) without preloader mediation | SoC confirmed MT6771 (Helio P60); silicon contains BootROM USB vulnerability | **BLOCKED (Software-Only):** Preloader mediates USB; software crash packets patched in 2020 builds (`0x1d18`/`0x1d1a` RX errors); BootROM requires hardware testpoint grounding |
 
 ### Candidate 1: Little Kernel Fastboot Verification Bypass
 - **Target Binary:** `lk.img` / `lk2.img` (ColorOS build C.50).

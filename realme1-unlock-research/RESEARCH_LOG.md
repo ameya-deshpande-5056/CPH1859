@@ -107,3 +107,32 @@
   5. Disassembled `flashing get_unlock_ability` (`0x60036518`) and `flashing unlock` (`0x60036648`): queries `0x60036390`, which reads the 4-byte flag from `partition_size - 4` of the `"frp"` partition (`unlock_allowed_flag_offset: 0x%llx`).
   6. Discovered that pyenv Python 3.13 already contains Capstone 5.0.7, establishing a non-invasive, reproducible disassembly environment on Linux Mint.
   7. Produced comprehensive research artifact `artifacts/c49_bootloader_format_analysis.md` (ART-007).
+
+---
+
+## 2026-10-21 - Phase 4: C.49 Findings Audit & C.50 Differential Research
+
+- **Context:** Detailed verification of all C.49 Little Kernel reverse engineering conclusions; search for verifiable C.50 ROM packages; evaluation of software-only routes against explicit prerequisites.
+- **Commands Executed:**
+  ```bash
+  # Search for local C.50 firmware
+  find /home/ameya/ -name "*C.50*" -o -name "*C50*"
+  # Inspect reserve4 sector math in 0x6002c794
+  python3 -c "import capstone; ..."
+  # Inspect public key modulus at 0x6007ee48
+  python3 -c "with open('.../lk.img', 'rb') as f: ..."
+  # Inspect clean_flash_unlock_data at 0x6002eacc and caller 0x60036920
+  python3 -c "import capstone; ..."
+  # Inspect mtk_arch_reset at 0x6000cd30
+  python3 -c "import capstone; ..."
+  # Inspect live device project properties
+  adb shell "getprop | grep -E 'project|model|version.release|separate|custom'"
+  ```
+- **Audit Findings:**
+  1. **Token Sector Offset:** Traced `0x6002c79a: add.w r1, r1, #0x7800` inside `read_reserve4`. When `r1 = 0x16` is passed, the actual sector offset is `0x7816` (30,742 sectors = `0x00f02c00` bytes into partition `reserve4`).
+  2. **Embedded Public Key:** Traced pointer `0x600b6b18` in `.data` to `.rodata` location `0x6007ee48` (file `0x7f048`), confirming the 256-byte (2048-bit) OEM RSA modulus embedded in LK.
+  3. **Relocking Path & `clean_flash_unlock_data`:** Proved that `clean_flash_unlock_data` (`0x6002eacc`) is called strictly during relocking (`cmd_flashing_lock` at `0x60036920`), zeroing the 4 KB token slot. It is never called on failed boot.
+  4. **Fastboot Exit Call:** Confirmed `0x6000cd30` is `[WDT] mtk_arch_reset`, writing magic `0x1971` to watchdog timer registers (`0x10007000`/`0x10007008`).
+  5. **Hardware Compatibility:** Verified `oppo6771_17065` is the unified BSP platform (`ro.separate.soft = 17066`, `vendor.gsm.project.baseband = OPPO6771_17065`), confirming conclusions apply across CPH1859 sub-variants.
+  6. **C.50 Firmware Search:** Online search confirms official Realme support portals removed Realme 1 packages post-EOL; third-party mirrors host earlier builds (C.09, C.18, C.49), but no verified C.50 full package is currently obtainable.
+  7. **Software-Only Prerequisites:** Formulated explicit prerequisite matrix classifying OEM authorization, ordinary ADB, Fastboot command access, software vulnerability, and BootROM routes. All software-only routes remain blocked by verified access controls.

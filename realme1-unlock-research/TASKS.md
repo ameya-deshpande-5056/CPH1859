@@ -20,7 +20,29 @@
 | **V001** | Vulnerability assessment & preloader/LK security review | **DONE** | A001, F002 | Phase 2 |
 | **S004** | Calibrated report synthesis & formal outcome deliverable | **DONE** | V001 | Phase 2 |
 | **F003** | C.49 Little Kernel container layout & static reverse engineering | **DONE** | S004 | Phase 3 |
-| **C001** | C.50 firmware acquisition & comparative diffing | **PENDING** | F003 | Phase 3 |
+| **C001** | C.50 firmware acquisition & mirror search | **DONE** | F003 | Phase 4 |
+| **P004** | C.49 findings audit & software-only prerequisite matrix | **DONE** | C001 | Phase 4 |
+
+---
+
+## Phase 4 Task Details
+
+### P004: C.49 Findings Audit & Software-Only Prerequisite Matrix
+- **Status:** DONE
+- **Objective:** Independently audit all Phase 3 conclusions regarding `lk.img`: container boundaries, fastboot gating, exact token sector coordinates in `reserve4`, RSA-2048/SHA-256 implementation, FRP offset math, `clean_flash_unlock_data` call paths, and CPH1859 vs CPH1861 project compatibility. Formulate explicit prerequisite matrix for software-only unlock vectors.
+- **Required Inputs:** `artifacts/c49_bootloader_format_analysis.md`, `~/Realme1/C49_extracted/lk.img`, live device ADB properties.
+- **Actions Performed:** Verified sector offset is `0x7800 + 0x16 = 0x7816` (`0x00f02c00` bytes); located embedded RSA public key modulus at RAM `0x6007ee48` (file `0x7f048`); proved `clean_flash_unlock_data` (`0x6002eacc`) is called strictly during relocking (`cmd_flashing_lock`) at `0x60036920`; confirmed hardware reset is `mtk_arch_reset` (`0x6000cd30`); confirmed project variant architecture (`oppo6771_17065`); audited software-only prerequisite routes; updated artifacts and tracking records.
+- **Evidence & Artifact References:** `artifacts/c49_bootloader_format_analysis.md`, `REPORT.md`, `DECISIONS.md`.
+- **Result & Confidence Level:** Complete, 100% confidence.
+
+---
+
+### C001: C.50 Firmware Acquisition & Mirror Search
+- **Status:** DONE (INVESTIGATION COMPLETE / REPOSITORY UNAVAILABLE)
+- **Objective:** Sourcing verified CPH1859 C.50 full OTA package (`.ozip`), decrypting using `bkerler/oppo_ozip_decrypt`, and performing binary diffing between C.49 and C.50 `lk.img` to resolve the `fastboot_unlock_verify` vs `fastboot_unlock_verity` string discrepancy.
+- **Required Inputs:** Web search across official and community firmware mirrors.
+- **Actions Performed:** Searched for public OTA packages (`CPH1859EX_11_OTA_0500_all_*.ozip`); verified official Realme support portal removed Realme 1 downloads post-EOL; third-party mirrors host earlier builds (C.09, C.18, C.49) but no accessible, verified C.50 full binary is currently obtainable. Formally documented the missing artifact requirement and stopped short of claiming a differential result.
+- **Result:** Complete (Blocker documented).
 
 ---
 

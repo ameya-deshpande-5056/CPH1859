@@ -249,25 +249,56 @@ flowchart TD
 #### Verification Function `0x6002eb00` Disassembly & Operational Breakdown:
 - **Stack Allocation:** `sub.w sp, sp, #0x1580` allocates a 5.5 KB frame on the stack.
 - **Hardware Serial Read:** Invokes `0x60000140` and `0x60030888` to query the SoC efuse board serial number into a 16-byte buffer (`r6 = [sp, #0x2c]`).
-- **Token Storage Partition & Read:**
-  - Calls `0x6002c794` (`read_reserve4`) with parameters: `r0 = [sp, #0x20]` (buffer), `r1 = 0x16` (sector offset 22), `r2 = 8` (sector count 8, i.e., 4,096 bytes).
+- **Token Storage Partition & Sector Offset:**
+  - Calls `0x6002c794` (`read_reserve4`) with parameters: `r0 = [sp, #0x20]` (buffer), `r1 = 0x16` (sector offset 22 relative to reserve4 sub-block), `r2 = 8` (8 sectors = 4,096 bytes).
   - Target partition: `"reserve4"` (read from string table at RAM `0x6005e220`).
+  - **Internal Sector Offset Math:** Inside `0x6002c794`, instruction `0x6002c79a: add.w r1, r1, #0x7800` adds the base sector `0x7800` (30,720 sectors = 15 MB) to parameter `r1 = 0x16`, giving the **actual sector offset `0x7816`** (30,742 sectors).
+  - **Actual Byte Offset:** `0x7816 * 512 = 0x00f02c00` bytes (15,740,416 bytes = ~15.01 MB into partition `reserve4`).
   - If read returns non-zero error: branches to `0x6002ed8e`, outputs `"Unable read emmc: %r\n"` (`0x600802dc`), and returns error.
 - **Board Serial Comparison:**
-  - Executes `memcmp` (`0x60039e78`) comparing 16 bytes of the hardware board serial against the token buffer at `sp + 0x688`.
-  - Fallback check: If the first check fails, inspects `[buffer + 0x100]` for ASCII `'0'` and compares 15 bytes against `sp + 0x689`.
+  - Executes `memcmp` (`0x60039e78`) at `0x6002ec3c` comparing 16 bytes of the hardware board serial against the token buffer at `sp + 0x688`.
+  - Fallback check: If the primary 16-byte check fails, inspects `[buffer + 0x100]` for ASCII `'0'` (`0x30`) and compares 15 bytes against `sp + 0x689`.
   - Mismatch branch (`0x6002ed9e`): If neither matches, outputs `"the serial is not match\n"` (`0x600802f8`) and returns `-1`.
 - **Cryptographic Signature Verification:**
   - Hash algorithm: SHA-256 (`0x600540a0` / `0x60054960`, digest size 32 bytes / `0x20`).
-  - Signature algorithm: RSA-2048 (`0x600567c0`, key modulus 2048 bits / `0x800`, signature size 256 bytes / `0x100`).
+  - Signature algorithm: RSA-2048 PKCS#1 v1.5 (`0x600567c0`, key modulus 2048 bits / `0x800`, signature size 256 bytes / `0x100`).
+  - **Public Key Modulus Location:** Embedded directly in `.rodata` of `lk.img` at RAM **`0x6007ee48`** (file offset `0x7f048`). The address is referenced via pointer `0x600b6b18` in `.data`, loaded at `0x6002ecde: ldr r1, [pc, #0xd4]`.
   - Pass branch (`0x6002ed5a`): Outputs `"oppo Verify pass\n"` (`0x6008031c`) and returns `0`.
-  - Fail branch (`0x6002ed50`): Outputs `"oppo Verify fail\n"` (`0x60080330`), attempts to wipe invalid token data via `clean_flash_unlock_data` (reporting `"clean_flash_unlock_data fail!\n"` at `0x600802b8` if write fails), and returns non-zero error.
+  - Fail branch (`0x6002ed50`): Outputs `"oppo Verify fail\n"` (`0x60080330`), sets return code `-3` (`0xfffffffd`), and exits.
+- **Fastboot Abort Trigger:**
+  - When `0x6002eb00` returns non-zero (`-1` or `-3`), `fastboot_init()` at `0x60030050` outputs `"fastboot_unlock_verify fail\n\n"` (`0x600809fc`).
+  - At `0x6003005c`, it calls `0x6000cd30` (`[WDT] mtk_arch_reset`), which writes magic `0x1971` to the MediaTek Watchdog Timer reset register (`0x10007000` / `0x10007008`), triggering an immediate hardware reset into normal ColorOS.
 
-Because no authorized OEM-signed token matching the device hardware serial exists in `reserve4` on factory phones:
-1. `0x6002eb00` outputs `"the serial is not match\n"`.
-2. It returns non-zero (`-1`) to `fastboot_init()`.
-3. `fastboot_init()` outputs `"fastboot_unlock_verify fail\n\n"` (`0x600809fc`).
-4. `fastboot_init()` calls `0x6000cd30`, triggering an immediate forced reboot into normal ColorOS.
+#### Relocking & Token Clearing: `clean_flash_unlock_data()`
+- **Function Location:** RAM `0x6002eacc` | File offset `0x2ecc`
+- **Disassembly:**
+  ```armasm
+  0x6002eacc:  push     {r4, lr}
+  0x6002eace:  sub.w    sp, sp, #0x1000   ; Allocates 4096-byte (4 KB) buffer
+  0x6002ead2:  movs     r1, #0
+  0x6002ead4:  mov.w    r2, #0x1000
+  0x6002ead8:  mov      r0, sp
+  0x6002eada:  blx      #0x60039db4       ; memset(sp, 0, 4096)
+  0x6002eade:  mov      r0, sp
+  0x6002eae0:  movs     r1, #0x16         ; Sector offset 0x16 (actual 0x7816)
+  0x6002eae2:  movs     r2, #8            ; 8 sectors (4096 bytes)
+  0x6002eae4:  bl       #0x6002c7d4       ; write_reserve4(buf, sector=0x16, count=8)
+  0x6002eae8:  mov      r4, r0
+  0x6002eaea:  cbz      r0, #0x6002eaf4
+  0x6002eaec:  ldr      r0, [pc, #0xc]    ; "clean_flash_unlock_data fail!\n" (0x6008029c)
+  0x6002eaee:  add      r0, pc
+  0x6002eaf0:  bl       #0x60038b7c
+  0x6002eaf4:  mov      r0, r4
+  0x6002eaf6:  add.w    sp, sp, #0x1000
+  0x6002eafa:  pop      {r4, pc}
+  ```
+- **Caller Context & Failure Conditions:**
+  - `clean_flash_unlock_data()` is called **strictly from `0x60036920`** inside `cmd_flashing_lock()`.
+  - It is reached **only when the user executes `fastboot flashing lock` and confirms relocking on-screen**.
+  - It is **never called during token verification failure**.
+- **Destructive Side Effects Assessment:**
+  - Zero destructive side effects on user data, recovery, or operating system partitions.
+  - Its scope is strictly confined to overwriting the 4,096-byte unlock token at sector `0x7816` of partition `reserve4` with zero bytes, ensuring the device returns to an un-tokenized locked state.
 
 ### 5.2 Gatekeeper 2: Permission Query (`flashing get_unlock_ability`)
 - Handler address: `0x60036518` (Thumb entry `0x60036519`).
@@ -323,6 +354,15 @@ Because no authorized OEM-signed token matching the device hardware serial exist
 4. **Proprietary In-Depth Test Server Protocol:**
    - While the on-device token structure (4 KB in `reserve4`, 16-byte serial, 256-byte signature) is established, the exact network protocol, endpoint parameters, and cryptographic challenge-response exchanged between `com.coloros.deeptesting` and the decommissioned Oppo server cannot be reconstructed from bootloader code alone.
 
+### 6.3 Hardware Project Compatibility: CPH1859 vs CPH1861 vs Project 17065
+- **Common Software Project Architecture:** `Projectconfig.xml` establishes that the underlying BSP project is `oppo6771_17065`, serving as the `Common_software_project` across variants `17061`, `17065`, `17066`, `27065`, and `27066`.
+- **Live Device Posture:** The target device reports:
+  - `ro.product.model = CPH1859`
+  - `ro.separate.soft = 17066`
+  - `vendor.gsm.project.baseband = OPPO6771_17065(LWCTG_CUSTOM)`
+  - `vendor.oppo.camera.project = 17061`
+- **Audit Finding:** The C.49 `lk.img` binary is compiled from the unified `oppo6771_17065` Little Kernel codebase. None of the reverse-engineering findings rely on assumptions about differences between CPH1859 and CPH1861; they are directly applicable to the common `17065` bootloader binary running across all Realme 1 hardware sub-models.
+
 ---
 
 ## 7. Recommended Static Disassembly Toolset
@@ -372,6 +412,36 @@ with open('/home/ameya/Realme1/C49_extracted/lk.img', 'rb') as f:
     code = f.read(0x24)
 md = capstone.Cs(capstone.CS_ARCH_ARM, capstone.CS_MODE_THUMB)
 for i in md.disasm(code, 0x60030040):
+    print(f'0x{i.address:08x}:  {i.mnemonic:<8} {i.op_str}')
+"
+
+# 5. Inspect reserve4 Sector Offset Math (0x7800 + 0x16 = 0x7816)
+python3 -c "
+import capstone
+with open('/home/ameya/Realme1/C49_extracted/lk.img', 'rb') as f:
+    f.seek(0x6002c794 - 0x60000000 + 0x200)
+    code = f.read(0x1a)
+md = capstone.Cs(capstone.CS_ARCH_ARM, capstone.CS_MODE_THUMB)
+for i in md.disasm(code, 0x6002c794):
+    print(f'0x{i.address:08x}:  {i.mnemonic:<8} {i.op_str}')
+"
+
+# 6. Verify Embedded 2048-Bit RSA Public Key Modulus
+python3 -c "
+with open('/home/ameya/Realme1/C49_extracted/lk.img', 'rb') as f:
+    f.seek(0x6007ee48 - 0x60000000 + 0x200)
+    modulus = f.read(256)
+print(f'RSA Modulus (256 bytes / 2048 bits): {modulus[:32].hex()}...')
+"
+
+# 7. Disassemble clean_flash_unlock_data Caller in cmd_flashing_lock
+python3 -c "
+import capstone
+with open('/home/ameya/Realme1/C49_extracted/lk.img', 'rb') as f:
+    f.seek(0x60036916 - 0x60000000 + 0x200)
+    code = f.read(0x18)
+md = capstone.Cs(capstone.CS_ARCH_ARM, capstone.CS_MODE_THUMB)
+for i in md.disasm(code, 0x60036916):
     print(f'0x{i.address:08x}:  {i.mnemonic:<8} {i.op_str}')
 "
 ```

@@ -2,23 +2,25 @@
 
 ## Authoritative Progress Indicator
 
-- **Project Status:** ACTIVE RESEARCH / PHASE 3 STATIC REVERSE ENGINEERING COMPLETE
-- **Current Phase:** Phase 3: C.49 Firmware Container Analysis & Static Binary Reverse Engineering
-- **Current Task ID & Description:** F003: C.49 Little Kernel container layout & static reverse engineering
-- **Overall Completion Estimate:** 100% of Phase 1, Phase 2, and Phase 3 static binary analysis tasks
-- **Last Completed Milestone:** Static reverse engineering of C.49 Little Kernel container format, DRAM memory map (`0x60000000`), ARM/Thumb mode transitions, and fastboot verification / unlock logic delivered in `artifacts/c49_bootloader_format_analysis.md`.
-- **Formal Project Outcome:** **`BLOCKED BY MISSING FIRMWARE OR ACCESS`** (for software-only unlock on live C.50 device; C.49 static baseline fully characterized).
-- **Primary Technical Findings:**
-  1. **Container Architecture:** `lk.img` uses 512-byte MediaTek Image Headers (`union prt_img_hdr`, magic `0x58881688`/`0x58891689`) containing a 749,772-byte executable payload (`0x000b70cc`), followed by two 512-byte certificate containers (`cert1` at `0xb72d0` and `cert2` at `0xb7b80`). Total file size: 753,984 bytes.
-  2. **Execution Layout & Mode Switch:** 32-bit ARMv7-A Little Endian executing at base DRAM address `0x60000000`. Reset vector at `0x60000000` (file `0x200`) runs in 32-bit ARM mode to disable CP15 caches/MMU, perform self-relocation, initialize mode stacks, and zero BSS, transitioning via `blx #0x6002a944` into Thumb-2 mode for `kmain()`.
-  3. **Fastboot Gatekeeper Identified:** `fastboot_init()` at `0x60030018` calls `0x6002eb00` to verify an OEM cryptographic token matching the efuse board serial number. In absence of a valid token, it prints `fastboot_unlock_verify fail\n\n` and immediately reboots via `0x6000cd30`, preventing factory devices from remaining in fastboot.
-  4. **Unlock Permission Path:** `flashing get_unlock_ability` (`0x60036518`) and `flashing unlock` (`0x60036648`) query `0x60036390`, which reads the 4-byte flag from `partition_size - 4` of the `"frp"` partition (`unlock_allowed_flag_offset: 0x%llx`).
-  5. **Disassembler Toolchain:** Verified local Pyenv Python 3.13 with Capstone 5.0.7 as the lightweight, non-invasive static disassembly suite on Linux Mint.
+- **Project Status:** ACTIVE RESEARCH / PHASE 4 AUDIT & PREREQUISITE MATRIX COMPLETE
+- **Current Phase:** Phase 4: C.49 Findings Audit & C.50 Differential Research
+- **Current Task ID & Description:** P004: C.49 findings audit & software-only prerequisite matrix
+- **Overall Completion Estimate:** 100% of Phase 1, Phase 2, Phase 3, and Phase 4 research deliverables
+- **Last Completed Milestone:** Comprehensive technical audit of C.49 Little Kernel findings delivered: verified token sector offset (`0x7816` in `reserve4`), embedded RSA-2048 public key (`0x6007ee48`), hardware WDT reset call (`0x6000cd30`), `clean_flash_unlock_data` restricted relocking scope (`0x60036920`), and software-only route prerequisite classification matrix.
+- **Formal Project Outcome:** **`BLOCKED BY MISSING FIRMWARE OR ACCESS`** (for software-only unlock on live C.50 device; C.49 static baseline fully audited).
+- **Primary Technical Findings (Audited):**
+  1. **Token Storage Coordinates:** `verify_unlock_token()` (`0x6002eb00`) calls `read_reserve4` (`0x6002c794`), which adds base sector `0x7800` to argument `0x16`, establishing the actual token location as **sector `0x7816`** (`0x00f02c00` bytes into partition `reserve4`). Read length is 8 sectors (4,096 bytes).
+  2. **Serial & Signature Checks:** Compares 16 bytes of SoC efuse serial via `memcmp` against the token buffer (`sp + 0x688`). Validates a 256-byte RSA-2048 PKCS#1 v1.5 signature with SHA-256 against an OEM public key modulus embedded in `.rodata` at RAM **`0x6007ee48`** (file offset `0x7f048`).
+  3. **Fastboot Exit Mechanism:** On token verification failure, `fastboot_init()` calls `0x6000cd30` (`[WDT] mtk_arch_reset`), writing magic `0x1971` to watchdog timer registers (`0x10007000`/`0x10007008`) to force an immediate hard reboot into normal ColorOS.
+  4. **Relocking Path Scope:** `clean_flash_unlock_data()` (`0x6002eacc`) is called **exclusively from `cmd_flashing_lock()` at `0x60036920`** during intentional user relocking. It zeroes the 4 KB token slot at sector `0x7816` of `reserve4`. It is never called on failed boot and has zero side effects on other partitions.
+  5. **FRP Permission Read:** `get_unlock_permission()` (`0x60036390`) calculates 64-bit offset `partition_size - 4` on `"frp"` and reads 4 bytes. If `0`, `cmd_flashing_unlock()` rejects with `"Unlock operation is not allowed"`.
+  6. **Hardware Compatibility:** Built on unified `oppo6771_17065` codebase (`Common_software_project="17065"`), confirmed by connected device properties (`ro.separate.soft = 17066`, `vendor.gsm.project.baseband = OPPO6771_17065`). Findings apply across CPH1859 and sister variants.
+  7. **C.50 Firmware Status:** Official Realme download portals have removed Realme 1 packages post-EOL; third-party repositories host C.09/C.18/C.49, but no verified C.50 full package is currently obtainable.
 - **Next Three Actions (Prioritized):**
-  1. Review verified container format and disassembly findings in `artifacts/c49_bootloader_format_analysis.md`.
-  2. Formulate C.50 firmware acquisition strategy to obtain decrypted C.50 `lk.img` for binary diffing and resolution of `fastboot_unlock_verify` vs `verity`.
-  3. Continue maintaining strict non-invasive, read-only posture on the target device.
-- **Last Updated:** 2026-10-21T12:22:00+05:30
+  1. Review audited technical findings in `artifacts/c49_bootloader_format_analysis.md` and prerequisite matrix in `REPORT.md`.
+  2. If an authenticated C.50 full package (`.ozip` or dump) becomes available from an official or trusted archive, perform binary diffing against C.49 `lk.img`.
+  3. Maintain strictly non-invasive, read-only posture on the target device.
+- **Last Updated:** 2026-10-21T12:40:00+05:30
 - **Current Git Branch:** main
 - **Relevant Artifact Paths:**
   - `realme1-unlock-research/artifacts/c49_bootloader_format_analysis.md` (ART-007)
