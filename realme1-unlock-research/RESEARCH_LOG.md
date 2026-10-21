@@ -30,7 +30,6 @@
   3. **Server Status:** The backend authorization service for older ColorOS 5.x/6.x devices (Realme 1) has been deprecated/offline for years, causing the app to fail at the submission stage.
   4. **Firmware C.50 Status:** Community reports on XDA indicate that even before server shutdown, C.50 builds broke In-Depth Test compatibility, and users were forced to downgrade to C.49 or earlier.
   5. **MediaTek BootROM (MTKClient):** MT6771 (Helio P60) is supported by MTKClient in BootROM mode (`0e8d:0003`). However, modern Oppo/Realme preloader firmware restricts the USB preloader handshake and blocks software-based preloader crashing (`kamakiri2` / `crash da`). Entering BootROM on these devices typically requires hardware testpoint grounding, which violates the software-only constraint of this project.
-- **Next Steps:** Proceed with detailed investigations for tasks R001 through R004, followed by building the diagnostic tool.
 
 ---
 
@@ -58,13 +57,30 @@
 
 ---
 
-## 2026-10-21T10:24:00+05:30 — Final Synthesis & Feasibility Conclusion
+## 2026-10-21T10:35:00+05:30 — Phase 2: Evidence Audit & Firmware Reverse Engineering Feasibility
 
-- **Objective:** Consolidate empirical and research evidence into `REPORT.md` and make a final determination.
-- **Findings:**
-  - Software-only unlock cannot succeed because:
-    1. Little Kernel blocks Fastboot mode via cryptographic serial token validation (`fastboot_unlock_verity fail`).
-    2. Vendor unlock server infrastructure is permanently decommissioned.
-    3. MediaTek Preloader on C.50 blocks software-based BootROM entry (`0x1d18`/`0x1d1a` RX crash errors).
-    4. Forcing BROM requires hardware testpoint grounding, which violates project constraints.
-- **Conclusion:** Mark research complete and software-only unlock blocked. Do not fabricate unverified exploits.
+- **Objective:** Audit previous claims against primary evidence, classify claims under the 5 epistemic levels, inventory local firmware binaries, probe partition permissions, and evaluate attack surfaces.
+- **Commands Executed:**
+  ```bash
+  which strings objdump readelf binwalk r2 radare2 gdb xxd
+  find /home/ameya -maxdepth 3 -name "*.ozip" -o -name "*.ofp" -o -name "*.bin" -o -name "*.img" -o -name "*CPH1859*"
+  adb shell "ls -la /dev/block/by-name; ls -la /dev/block/platform/*/by-name"
+  adb shell "head -c 16 /dev/block/by-name/lk"
+  adb shell "ls -la /sdcard; ls -la /sdcard/Download"
+  adb shell "grep -r -l 'fastboot_unlock_verity' /system/ /vendor/ 2>/dev/null"
+  ```
+- **Observed Results & Evidence Audit:**
+  1. **Binary Analysis Tooling:** `strings`, `objdump`, `readelf`, `gdb`, `xxd` are installed and available.
+  2. **Firmware Inventory:** No exact C.50 full firmware package (`.ozip` or `.ofp` or `.bin`) exists on the host filesystem.
+  3. **Live Device Block Nodes:**
+     - `/dev/block/by-name/lk -> /dev/block/mmcblk0p33` is owned by `root:root` with mode `0600`.
+     - `/dev/block/by-name/preloader_a -> /dev/block/mmcblk0boot0` is owned by `root:system` with mode `0660`.
+     - Unprivileged ADB shell (`shell` UID 2000) cannot read `/dev/block/by-name/lk` (`Permission denied`).
+  4. **User-Space String Search:** `grep` across `/system` and `/vendor` returned zero matches for `fastboot_unlock_verity`, confirming it does not originate from user-space Android binaries.
+  5. **Epistemic Calibration:**
+     - Exact origin of error string: Directly observed on screen during boot transition; attribution to Little Kernel (`lk`) is strongly inferred from boot-chain display driver initialization; exact C function names (`fastboot_unlock_verity()`) and call graphs are inferred, not directly disassembled from C.50.
+     - Token structure and serial validation: Inferred from error string and related vendor security architecture; token cryptographic details unverified without C.50 binary disassembly.
+     - C.50 DeepTesting incompatibility: Source-reported from XDA developer threads.
+     - Preloader crash patch: Inferred from 2020 MT6771 patch history and C.50 build date (October 2020); not experimentally tested on this device.
+     - Hardware testpoint requirement: Source-reported from repair documentation.
+- **Formal Outcome:** Formally selected **`BLOCKED BY MISSING FIRMWARE OR ACCESS`** (with secondary note: `NO VIABLE ROUTE FOUND WITH CURRENT EVIDENCE`). Unsupported claims of mathematical impossibility removed.

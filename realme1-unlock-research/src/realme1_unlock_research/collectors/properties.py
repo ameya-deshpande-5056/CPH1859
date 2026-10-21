@@ -88,3 +88,4 @@ def collect_android_properties(runner: SafeCommandRunner) -> tuple[dict[str, Any
     }
 
     return data, discovered_serials
+

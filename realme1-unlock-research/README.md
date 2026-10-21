@@ -73,3 +73,4 @@ Every test executed by the tool is labeled with one of the following statuses:
 
 - The tool does NOT modify bootloader state, generate cryptographic tokens, or bypass manufacturer verification.
 - Offline device detection relies on USB bus enumeration (`lsusb`).
+

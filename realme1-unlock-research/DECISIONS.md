@@ -44,12 +44,20 @@
 
 ### DEC-005: Conclusion on Software-Only Unlock Feasibility for CPH1859EX_11_C.50
 - **Date:** 2026-10-21
-- **Status:** APPROVED / FORMAL CONCLUSION
-- **Context:** Feasibility evaluation based on live diagnostics and empirical findings from tasks R001-R004.
-- **Decision:** Conclude that a software-only bootloader unlock is not possible on build `CPH1859EX_11_C.50`. Discontinue ungrounded software exploit attempts.
-- **Reason:** 
-  1. LK actively enforces cryptographic serial token verification for Fastboot entry, resulting in `the serial is not match / fastboot_unlock_verity fail`.
-  2. The official DeepTesting authorization backend has been permanently decommissioned.
-  3. MediaTek preloader on C.50 patches USB crash vectors, preventing software-triggered BROM mode.
-  4. Entering BROM requires hardware testpoint grounding, which is excluded by the project constraints.
-- **Alternatives Rejected:** Recommending hardware disassembly (violates user constraints); fabricating speculative software bypasses (violates technical integrity).
+- **Status:** SUPERSEDED BY DEC-006
+- **Context:** Initial evaluation based on preliminary diagnostic scan and literature review.
+- **Decision:** Initial report declared unlocking impossible.
+- **Reason:** Superseded to remove unproven claims of mathematical impossibility.
+
+---
+
+### DEC-006: Epistemic Calibration & Formal Project Outcome Selection
+- **Date:** 2026-10-21
+- **Status:** APPROVED / CURRENT
+- **Context:** Phase 2 evidence audit revealed that claims regarding exact C function names, token storage structures, and preloader crash error codes were inferred from secondary literature rather than locally disassembled binaries. Furthermore, local C.50 firmware images are unavailable on the host, and raw block access is restricted over ADB.
+- **Decision:** 
+  1. Calibrate all research findings using the 5-tier epistemic taxonomy (`directly observed`, `independently verified`, `source-reported`, `inferred`, `unsubstantiated`).
+  2. Adopt the formal outcome: **`BLOCKED BY MISSING FIRMWARE OR ACCESS`** (with secondary finding `NO VIABLE ROUTE FOUND WITH CURRENT EVIDENCE`).
+  3. Formally catalog the specific reverse-engineering analyses that remain blocked pending offline firmware acquisition.
+- **Reason:** Adheres strictly to scientific integrity; a failed search or absent binary is not proof that no vulnerability exists.
+- **Alternatives Rejected:** Declaring software unlock "mathematically impossible" (unsubstantiated certainty); fabricating simulated disassembly of unavailable images (scientific misconduct).

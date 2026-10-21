@@ -22,3 +22,4 @@ realme1-unlock-research = "realme1_unlock_research.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+

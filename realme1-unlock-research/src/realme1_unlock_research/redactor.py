@@ -61,3 +61,4 @@ class SensitiveDataRedactor:
         elif isinstance(obj, set):
             return {self.redact_structure(item) for item in obj}
         return obj
+

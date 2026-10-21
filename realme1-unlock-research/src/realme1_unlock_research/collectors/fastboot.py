@@ -45,3 +45,4 @@ def collect_fastboot_devices(runner: SafeCommandRunner) -> tuple[dict[str, Any],
     }
 
     return data, discovered_serials
+

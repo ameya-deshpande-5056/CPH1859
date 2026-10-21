@@ -26,3 +26,4 @@ This document records the firmware packages, OTA structures, and cryptographic d
    - `system.new.dat.br`: Android system image (brotli-compressed sparse data).
    - `vendor.new.dat.br`: MediaTek HALs and proprietary vendor drivers.
    - `vbmeta.img`: Android Verified Boot metadata and partition hash trees.
+

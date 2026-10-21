@@ -78,3 +78,4 @@ def collect_usb_devices(runner: SafeCommandRunner) -> dict[str, Any]:
     }
 
     return data
+

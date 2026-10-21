@@ -56,3 +56,4 @@ def collect_host_environment(runner: SafeCommandRunner) -> dict[str, Any]:
         data["udev_rules"][up] = os.path.exists(up)
 
     return data
+

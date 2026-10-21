@@ -60,3 +60,4 @@ def collect_adb_devices(runner: SafeCommandRunner) -> tuple[dict[str, Any], set[
     }
 
     return data, discovered_serials
+

@@ -75,3 +75,4 @@ def monitor_usb_events(runner: SafeCommandRunner, duration_seconds: float = 5.0)
         "events_captured_count": len(events),
         "events": events,
     }
+

@@ -1,43 +1,46 @@
 # Next Agent Handoff: Realme 1 (CPH1859) Bootloader Unlock Research
 
 ## Current Objective
-The planned research and diagnostic development objectives are **COMPLETE**. A definitive, evidence-backed conclusion has been established: a software-only bootloader unlock is not possible on `CPH1859EX_11_C.50` without hardware testpoint access.
+Phase 2 reverse-engineering feasibility audit and evidence calibration are **COMPLETE**. The formal outcome **`BLOCKED BY MISSING FIRMWARE OR ACCESS`** (with secondary finding `NO VIABLE ROUTE FOUND WITH CURRENT EVIDENCE`) has been established.
 
 ## Current Status
 - **Confirmed Results:**
-  - Diagnostic CLI tool `realme1-unlock-research` implemented, 13 unit tests passed, live scan executed against target phone.
-  - Device properties and security posture collected and indexed in `artifacts/` with 100% identifier redaction.
-  - Root cause of `the serial is not match / fastboot_unlock_verity fail` definitively attributed to Little Kernel (`lk`) cryptographic serial token check.
-  - Official In-Depth Test backend server confirmed decommissioned.
-  - Build C.50 preloader confirmed to patch software BROM crash vectors, requiring physical testpoint shorting to force BootROM mode.
-- **Unlocking Viability:** Formally determined **BLOCKED (Software-Only)**.
+  - Full epistemic audit completed (`artifacts/evidence_audit.md`), mapping all 16 claims to the 5 epistemic levels (`directly observed`, `independently verified`, `source-reported`, `inferred`, `unsubstantiated`).
+  - Unsupported certainty ("mathematically/technically impossible") formally excised from all project documentation.
+  - Absence of local C.50 ROM packages confirmed; target device partition block nodes (`/dev/block/by-name/lk`) verified to be `root:root` mode `0600`, blocking unprivileged ADB partition dumping (`artifacts/firmware_access_blockage.md`).
+  - Four candidate vulnerability vectors evaluated in `REPORT.md` Section 3.
+  - Target device remains unmodified in factory state (`ro.boot.flash.locked = 1`).
+- **Formal Project Outcome:** **`BLOCKED BY MISSING FIRMWARE OR ACCESS`**.
 
 ## Last Verified Result
-- Live diagnostic run produced `artifacts/diagnostic_report.md` and `artifacts/diagnostic_report.json` with SHA-256 integrity verified and zero leaked serial numbers.
-- Research report `REPORT.md` delivered.
+- Evidence audit artifact: `artifacts/evidence_audit.md` (SHA-256: `0a1a65c800be18255f42d26d458af67c2f111308afa4b73f99b29f500faac8ab`).
+- Access blockage artifact: `artifacts/firmware_access_blockage.md` (SHA-256: `3f0a3421f2496134535f10ae81c72d0665a5dc1036166e2f5fba90ebe10b39a2`).
+- Updated report: `REPORT.md`.
 
 ## Work Completed
-- Tasks `T001`, `R001`, `R002`, `R003`, `R004`, `D001`, `D002`, `D003`, `S001`, `S002`, `S003` are all marked **DONE**.
-- Source registry (`sources/README.md`) populated with 7 verified primary/secondary references.
-- Artifact registry (`artifacts/README.md`) populated with 4 artifacts and SHA-256 hashes.
+- Tasks `T001` through `S003` (Phase 1) and `A001` through `S004` (Phase 2) are all marked **DONE**.
+- 10 external sources indexed in `sources/README.md`.
+- 6 research artifacts indexed with SHA-256 checksums in `artifacts/README.md`.
+- Read-only diagnostic CLI tool `realme1-unlock-research` tested with 13/13 passing tests.
 
 ## Work in Progress
-None. All planned milestones and deliverables have been achieved.
+None. All objectives for Phase 1 and Phase 2 are complete.
 
 ## Known Failures & Blockers
-- Software Fastboot entry: Intercepted and blocked by LK.
-- Software Preloader Crash: Rejected by patched preloader on build C.50.
-- DeepTesting APK: Rejected by build C.50 and decommissioned servers.
+- **Offline Reverse Engineering:** Blocked by absence of decrypted `lk.img` / `preloader.bin` binaries for C.50.
+- **Online Partition Extraction:** Blocked by Android DAC permissions (`root:root`) and SELinux on `/dev/block/mmcblk0p33`.
+- **Fastboot Execution:** Blocked by Little Kernel serial verity check (`fastboot_unlock_verity fail`).
+- **BootROM Entry:** Blocked by Preloader mediation; requires hardware testpoint grounding if software crash payloads are rejected.
 
 ## Open Questions
-- None within the scope of software-only research. If the user decides to allow hardware opening, testpoint pinouts and MTKClient BROM flashing can be explored.
+- What exact cryptographic signature algorithm and key modulus does ColorOS C.50 Little Kernel use to validate the unlock token? (Requires offline disassembly of `lk.img` once a C.50 ROM package is sourced).
 
 ## Next Action
-Present the final research findings, diagnostic toolchain, and technical decision to the user.
+Present the completed Phase 2 reverse-engineering audit, firmware inventory findings, and calibrated feasibility outcome to the user.
 
 ## Acceptance Criteria
-- Deliver comprehensive summary directly answering all user research prompts.
-- Point the user to `REPORT.md` and `PROJECT_STATE.md`.
+- Deliver comprehensive summary directly addressing all points in Phase 2 prompt.
+- Point the user to `REPORT.md`, `artifacts/evidence_audit.md`, and `artifacts/firmware_access_blockage.md`.
 - Confirm phone remains in unmodified factory state.
 
 ## Safety Constraints

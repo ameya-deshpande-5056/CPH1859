@@ -49,3 +49,4 @@ def collect_testing_packages(runner: SafeCommandRunner) -> dict[str, Any]:
     }
 
     return data
+

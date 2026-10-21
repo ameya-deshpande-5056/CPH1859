@@ -141,3 +141,4 @@ class DiagnosticReporter:
                         ])
 
         return "\n".join(lines)
+
