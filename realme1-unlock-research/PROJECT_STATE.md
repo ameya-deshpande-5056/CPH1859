@@ -17,7 +17,7 @@
   3. Maintain the read-only diagnostic tool `realme1-unlock-research` for non-invasive device posture audits.
 - **Last Updated:** 2026-10-21T10:25:00+05:30
 - **Current Git Branch:** main
-- **Latest Relevant Commit:** Baseline initialized; final deliverable commit pending
+- **Latest Relevant Commit:** `9ba91fd` ("Complete diagnostic CLI tool, live device audit, and feasibility research report")
 - **Relevant Artifact Paths:**
   - `realme1-unlock-research/REPORT.md`
   - `realme1-unlock-research/artifacts/diagnostic_report.md`
