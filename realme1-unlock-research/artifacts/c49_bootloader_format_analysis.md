@@ -246,16 +246,28 @@ flowchart TD
     H --> I["Forced Immediate Reboot to Normal Android"]
 ```
 
-#### Verification Function `0x6002eb00` Disassembly Highlights:
-- **Stack Allocation:** `sub.w sp, sp, #0x1580` allocates a 5.5 KB buffer on the stack.
-- **Hardware Serial Read:** Invokes `0x60000140` and `0x60030888` to query the SoC efuse board serial number.
-- **Token Read & Crypto:** Reads the signed authorization token from eMMC storage (`sub.w r3, r4, #0x14`), executes SHA hashing (`0x60054960`), and performs RSA verification (`0x600567c0`).
-- **Matching Check:** Compares the hardware serial number against the certificate payload:
-  - If mismatch: outputs `"the serial is not match"` (`0x60080304`).
-  - If signature invalid: outputs `"oppo Verify fail"` (`0x60080330`) and returns an error code.
-  - If valid: outputs `"oppo Verify pass"` (`0x6008031c`) and returns `0`.
+#### Verification Function `0x6002eb00` Disassembly & Operational Breakdown:
+- **Stack Allocation:** `sub.w sp, sp, #0x1580` allocates a 5.5 KB frame on the stack.
+- **Hardware Serial Read:** Invokes `0x60000140` and `0x60030888` to query the SoC efuse board serial number into a 16-byte buffer (`r6 = [sp, #0x2c]`).
+- **Token Storage Partition & Read:**
+  - Calls `0x6002c794` (`read_reserve4`) with parameters: `r0 = [sp, #0x20]` (buffer), `r1 = 0x16` (sector offset 22), `r2 = 8` (sector count 8, i.e., 4,096 bytes).
+  - Target partition: `"reserve4"` (read from string table at RAM `0x6005e220`).
+  - If read returns non-zero error: branches to `0x6002ed8e`, outputs `"Unable read emmc: %r\n"` (`0x600802dc`), and returns error.
+- **Board Serial Comparison:**
+  - Executes `memcmp` (`0x60039e78`) comparing 16 bytes of the hardware board serial against the token buffer at `sp + 0x688`.
+  - Fallback check: If the first check fails, inspects `[buffer + 0x100]` for ASCII `'0'` and compares 15 bytes against `sp + 0x689`.
+  - Mismatch branch (`0x6002ed9e`): If neither matches, outputs `"the serial is not match\n"` (`0x600802f8`) and returns `-1`.
+- **Cryptographic Signature Verification:**
+  - Hash algorithm: SHA-256 (`0x600540a0` / `0x60054960`, digest size 32 bytes / `0x20`).
+  - Signature algorithm: RSA-2048 (`0x600567c0`, key modulus 2048 bits / `0x800`, signature size 256 bytes / `0x100`).
+  - Pass branch (`0x6002ed5a`): Outputs `"oppo Verify pass\n"` (`0x6008031c`) and returns `0`.
+  - Fail branch (`0x6002ed50`): Outputs `"oppo Verify fail\n"` (`0x60080330`), attempts to wipe invalid token data via `clean_flash_unlock_data` (reporting `"clean_flash_unlock_data fail!\n"` at `0x600802b8` if write fails), and returns non-zero error.
 
-Because no signed unlock token is present on an unmodified factory phone, `0x6002eb00` returns non-zero. `fastboot_init()` then prints `fastboot_unlock_verify fail` and unconditionally triggers an immediate reboot via `0x6000cd30`.
+Because no authorized OEM-signed token matching the device hardware serial exists in `reserve4` on factory phones:
+1. `0x6002eb00` outputs `"the serial is not match\n"`.
+2. It returns non-zero (`-1`) to `fastboot_init()`.
+3. `fastboot_init()` outputs `"fastboot_unlock_verify fail\n\n"` (`0x600809fc`).
+4. `fastboot_init()` calls `0x6000cd30`, triggering an immediate forced reboot into normal ColorOS.
 
 ### 5.2 Gatekeeper 2: Permission Query (`flashing get_unlock_ability`)
 - Handler address: `0x60036518` (Thumb entry `0x60036519`).
@@ -294,11 +306,22 @@ Because no signed unlock token is present on an unmodified factory phone, `0x600
 3. **Fastboot Lockout Mechanism:** Fastboot mode is not blocked by a missing partition; it is blocked by an explicit hardware efuse serial validation function (`0x6002eb00`) in `fastboot_init()`.
 4. **OEM Unlock Flag Location:** The `unlock_ability` flag is read directly from offset `partition_size - 4` of the `frp` partition.
 
-### 6.2 Hypotheses Requiring C.50 Evidence
-1. **String Discrepancy (`verify` vs `verity`):** On the live device running C.50, the user observed `fastboot_unlock_verity fail` (spelled with a `t`). In C.49, the string is explicitly `fastboot_unlock_verify fail` (with an `f`).
-   - *Hypothesis A:* The string was renamed or corrected for spelling in the C.50 update.
-   - *Hypothesis B:* C.50 added a distinct Android Verified Boot (AVB) check that fails earlier than the token check.
-   - *Resolution requirement:* Decrypting and disassembling the exact C.50 `lk.img` binary.
+### 6.2 Questions That Cannot Be Answered From C.49 Firmware Alone
+1. **The C.50 Error String Discrepancy (`verify` vs `verity`):**
+   - Direct observation on live device running C.50: When `adb reboot bootloader` is issued, the screen displays `fastboot_unlock_verity fail` (spelled with a `t`).
+   - Direct observation in C.49 `lk.img`: The string is explicitly `fastboot_unlock_verify fail` (with an `f`, file `0x80bfc`).
+   - *Open question:* Did Oppo/MediaTek apply a simple spelling correction in C.50, or does C.50 contain an additional Android Verified Boot (AVB) dm-verity routine that triggers before or during fastboot initialization?
+   - *Unresolvable without:* Disassembling decrypted C.50 `lk.img`.
+2. **C.50 Cryptographic Token Key & Algorithm Stability:**
+   - In C.49, token verification in `0x6002eb00` uses RSA-2048 with SHA-256 against an OEM public key modulus, checking 16 bytes of serial against sector `0x16` of `reserve4`.
+   - *Open question:* Did C.50 rotate the RSA signing key modulus, change the token payload structure, or move the token offset in `reserve4`?
+   - *Unresolvable without:* Extracting the public key structure and token parsing logic from C.50 `lk.img`.
+3. **C.50 Preloader Handshake & BROM Transition Vector:**
+   - The C.49 preloader contains strings referring to `Force brom download recovery success` and `Preloader going reset and trigger BROM usb auto detectiton!!`.
+   - *Open question:* Does the C.50 preloader maintain these recovery routines, or were watchdog reset and USB download mode entry points completely excised or hardened?
+   - *Unresolvable without:* Disassembling the C.50 `preloader.bin`.
+4. **Proprietary In-Depth Test Server Protocol:**
+   - While the on-device token structure (4 KB in `reserve4`, 16-byte serial, 256-byte signature) is established, the exact network protocol, endpoint parameters, and cryptographic challenge-response exchanged between `com.coloros.deeptesting` and the decommissioned Oppo server cannot be reconstructed from bootloader code alone.
 
 ---
 
