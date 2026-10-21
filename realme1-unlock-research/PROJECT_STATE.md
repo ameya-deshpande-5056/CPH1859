@@ -2,11 +2,11 @@
 
 ## Authoritative Progress Indicator
 
-- **Project Status:** ACTIVE RESEARCH / C.50 DIFFERENTIAL REVERSE ENGINEERING COMPLETE
-- **Current Phase:** Phase 4: C.50 Differential Reverse Engineering & Cryptographic Container Analysis
-- **Current Task ID & Description:** D004: C.50 Little Kernel differential analysis & cert2 dissection
-- **Overall Completion Estimate:** 100% of Phase 1, Phase 2, Phase 3, and Phase 4 research deliverables
-- **Last Completed Milestone:** Delivered exhaustive comparative static reverse engineering between C.49 and C.50 Little Kernel & Preloader: proved 100% executable code and call graph identity, parsed and cryptographically validated `cert2` (SHA-256 payload digest and RSASSA-PSS signature), proved decoupling of `cert2` from fastboot gating, and conclusively resolved device screen string discrepancy (`fastboot_unlock_verify` identical in both).
+- **Project Status:** ACTIVE RESEARCH / PHASE 5 INDEPENDENT VALIDATION COMPLETE
+- **Current Phase:** Phase 5: Independent Validation of LK Differential Analysis
+- **Current Task ID & Description:** V002: Independent validation of LK differential analysis & test suite
+- **Overall Completion Estimate:** 100% of Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5 research deliverables
+- **Last Completed Milestone:** Delivered independent validation via deterministic script `scripts/validate_lk_differential.py`: verified whole-file hashes, exact 315-byte diff in half-open intervals (`[0x07EA23, 0x07EA48)`, `[0x0B7F73, 0x0B7F93)`, `[0x0B8031, 0x0B8131)`), exact payload hash interval `[0x000200, 0x0B72D0)`, DER ASN.1 certificate fields (salt length 32), cryptographic signature validity, Preloader normalization/code identity, and fastboot string table resolution. All 17 unit tests passing.
 - **Formal Project Outcome:** **`NO VIABLE SOFTWARE-ONLY UNLOCK ROUTE FOUND`** (live C.50 device enforces identical token verification gating; bootloader code is 100% identical between C.49 and C.50).
 - **Primary Technical Findings (Audited & Verified):**
   1. **Token Storage Coordinates:** `verify_unlock_token()` (`0x6002EB00`) calls `read_reserve4` (`0x6002C794`), which adds base sector `0x7800` to argument `0x16`, establishing the actual token location as **sector `0x7816`** (`0x00F02C00` bytes into partition `reserve4`). Read length is 8 sectors (4,096 bytes).
@@ -17,13 +17,16 @@
   6. **Cryptographic Role of `cert2`:** MediaTek Secure Boot v2 Content Certificate verified by Preloader during LK loading from flash. Contains payload digest (OID `2.16.886.2454.2.1`) and RSASSA-PSS signature signed by intermediate key `Key C2` (certified by Root Key `Key C1` in `cert1`). It is decoupled from runtime Fastboot execution and token validation.
   7. **Spelling Discrepancy Resolved:** The string `fastboot_unlock_verity` is completely absent from C.49 LK, C.50 LK, and Preloader. Both C.49 and C.50 contain `fastboot_unlock_verify fail\n\n` at `0x080BFC`. The observed string on the device screen was an optical/transcription artifact on the low-resolution LCD console.
   8. **Preloader Code Identity:** C.49 and C.50 Preloaders are 100% code-identical after normalizing the 2,048-byte `EMMC_BOOT` header.
+  9. **CPH1861 Variant Safety Warning:** C.50 firmware is an `oppo6771_17065` codebase historically targeted for CPH1861. It must not be assumed safe to flash onto CPH1859, preserving the project's non-invasive read-only policy.
 - **Next Three Actions (Prioritized):**
-  1. Review comprehensive differential analysis report in `artifacts/c50_differential_analysis.md` (ART-008).
+  1. Review independent validation results in `artifacts/c50_differential_validation.md` (ART-009) and `artifacts/c50_differential_validation.json` (ART-010).
   2. Maintain strictly non-invasive, read-only posture on the target device.
   3. Synthesize final project outcomes across `REPORT.md` and evidence artifacts.
-- **Last Updated:** 2026-10-21T15:30:00+05:30
+- **Last Updated:** 2026-10-21T15:40:00+05:30
 - **Current Git Branch:** main
 - **Relevant Artifact Paths:**
+  - `realme1-unlock-research/artifacts/c50_differential_validation.md` (ART-009)
+  - `realme1-unlock-research/artifacts/c50_differential_validation.json` (ART-010)
   - `realme1-unlock-research/artifacts/c50_differential_analysis.md` (ART-008)
   - `realme1-unlock-research/artifacts/c49_bootloader_format_analysis.md` (ART-007)
   - `realme1-unlock-research/artifacts/evidence_audit.md` (ART-005)

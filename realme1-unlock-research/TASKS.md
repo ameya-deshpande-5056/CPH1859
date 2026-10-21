@@ -23,6 +23,19 @@
 | **C001** | C.50 firmware acquisition & mirror search | **DONE** | F003 | Phase 4 |
 | **P004** | C.49 findings audit & software-only prerequisite matrix | **DONE** | C001 | Phase 4 |
 | **D004** | C.50 Little Kernel differential analysis & cert2 dissection | **DONE** | P004 | Phase 4 |
+| **V002** | Independent validation of LK differential analysis & test suite | **DONE** | D004 | Phase 5 |
+
+---
+
+## Phase 5 Task Details
+
+### V002: Independent Validation of LK Differential Analysis & Test Suite
+- **Status:** DONE
+- **Objective:** Independently validate the C.49/C.50 Little Kernel and Preloader differential findings using a deterministic, reproducible validation toolchain. Verify file hashes, 315-byte diff enumeration, MediaTek container headers, exact payload hash intervals (`[0x000200, 0x0B72D0)`), ASN.1 DER certificate fields, RSASSA-PSS SHA-256 signatures with 32-byte salt, preloader normalization, and code identity of token-gating routines.
+- **Required Inputs:** `~/Realme1/C49_extracted/lk.img`, `~/Realme1/C50_research/c50_static/lk.img`, `preloader_oppo6771_17065.bin`, `preloader_emmc.img`.
+- **Actions Performed:** Developed `scripts/validate_lk_differential.py`; verified all 4 whole-file hashes; verified LK diff is exactly 315 bytes across 3 clusters in half-open notation (`[0x07EA23, 0x07EA48)`, `[0x0B7F73, 0x0B7F93)`, `[0x0B8031, 0x0B8131)`); confirmed `cert1` and `cert2` ASN.1 DER fields, OIDs, and PSS parameters (salt length 32); cryptographically verified `cert1` self-signature and `cert2` signatures in C.49 and C.50; confirmed OEM unlock token public key modulus (`0x6007EE48`) is distinct; verified Preloader normalization (2,048-byte `EMMC_BOOT` header) and confirmed all 569 diffs are in metadata strings and signature block; verified `verify_unlock_token` and `fastboot_init` are 100% byte-identical; confirmed `fastboot_unlock_verify` exists in both and `verity` is absent; developed 4 unit tests in `tests/test_differential_validator.py` (all 17 tests passing); produced artifacts `artifacts/c50_differential_validation.json` (ART-010) and `artifacts/c50_differential_validation.md` (ART-009).
+- **Evidence & Artifact References:** `artifacts/c50_differential_validation.md`, `artifacts/c50_differential_validation.json`, `scripts/validate_lk_differential.py`.
+- **Result & Confidence Level:** Complete, 100% confidence.
 
 ---
 

@@ -1,0 +1,186 @@
+{
+  "status": "PASS",
+  "failures": [],
+  "file_validation": {
+    "c49_lk": {
+      "path": "/home/ameya/Realme1/C49_extracted/lk.img",
+      "size": 753984,
+      "sha256": "30b48cd52b5d6035819c5580eb4a7f745010042318d1358b46a4f9fd5a37baaa",
+      "expected_sha256": "30b48cd52b5d6035819c5580eb4a7f745010042318d1358b46a4f9fd5a37baaa",
+      "match": true
+    },
+    "c50_lk": {
+      "path": "/home/ameya/Realme1/C50_research/c50_static/lk.img",
+      "size": 753984,
+      "sha256": "58cd19a9647610146f07bcf2ad5a1b0cd3056ce967c784bb37ea347669f5e563",
+      "expected_sha256": "58cd19a9647610146f07bcf2ad5a1b0cd3056ce967c784bb37ea347669f5e563",
+      "match": true
+    },
+    "c49_preloader": {
+      "path": "/home/ameya/Realme1/C49_extracted/preloader_oppo6771_17065.bin",
+      "size": 265756,
+      "sha256": "afe99890545f60ebb04158d7d327369237ea20241218c35f01f272b94ad1ee1a",
+      "expected_sha256": "afe99890545f60ebb04158d7d327369237ea20241218c35f01f272b94ad1ee1a",
+      "match": true
+    },
+    "c50_preloader": {
+      "path": "/home/ameya/Realme1/C50_research/c50_static/preloader_emmc.img",
+      "size": 267804,
+      "sha256": "2de60eda847de8ea3ae44368fc905f57dd63a842a3c7ad455f0fd1c326ebaeca",
+      "expected_sha256": "2de60eda847de8ea3ae44368fc905f57dd63a842a3c7ad455f0fd1c326ebaeca",
+      "match": true
+    }
+  },
+  "lk_diff": {
+    "total_differing_bytes": 315,
+    "expected_differing_bytes": 315,
+    "differing_ranges_half_open": [
+      {
+        "start": "0x07ea23",
+        "end": "0x07ea2a",
+        "len": 7
+      },
+      {
+        "start": "0x07ea2d",
+        "end": "0x07ea33",
+        "len": 6
+      },
+      {
+        "start": "0x07ea34",
+        "end": "0x07ea37",
+        "len": 3
+      },
+      {
+        "start": "0x07ea38",
+        "end": "0x07ea39",
+        "len": 1
+      },
+      {
+        "start": "0x07ea3e",
+        "end": "0x07ea48",
+        "len": 10
+      },
+      {
+        "start": "0x0b7f73",
+        "end": "0x0b7f93",
+        "len": 32
+      },
+      {
+        "start": "0x0b8031",
+        "end": "0x0b8131",
+        "len": 256
+      }
+    ],
+    "clusters_half_open": [
+      {
+        "cluster_index": 1,
+        "start": "0x07ea23",
+        "end": "0x07ea48",
+        "span": 37,
+        "diff_count": 27
+      },
+      {
+        "cluster_index": 2,
+        "start": "0x0b7f73",
+        "end": "0x0b7f93",
+        "span": 32,
+        "diff_count": 32
+      },
+      {
+        "cluster_index": 3,
+        "start": "0x0b8031",
+        "end": "0x0b8131",
+        "span": 256,
+        "diff_count": 256
+      }
+    ]
+  },
+  "container_validation": {
+    "valid": true,
+    "headers": {
+      "lk": {
+        "offset": "0x000000",
+        "magic": "0x58881688",
+        "ext_magic": "0x58891689",
+        "name": "lk",
+        "dsize": 749772,
+        "dsize_hex": "0xb70cc",
+        "hdr_size": 512
+      },
+      "cert1": {
+        "offset": "0x0b72d0",
+        "magic": "0x58881688",
+        "ext_magic": "0x58891689",
+        "name": "cert1",
+        "dsize": 1709,
+        "dsize_hex": "0x6ad",
+        "hdr_size": 512
+      },
+      "cert2": {
+        "offset": "0x0b7b80",
+        "magic": "0x58881688",
+        "ext_magic": "0x58891689",
+        "name": "cert2",
+        "dsize": 945,
+        "dsize_hex": "0x3b1",
+        "hdr_size": 512
+      }
+    },
+    "payload_intervals": {
+      "lk_payload": "[0x000200, 0x0b72cc)",
+      "lk_payload_padded_16b": "[0x000200, 0x0b72d0)",
+      "cert1_payload": "[0x0b74d0, 0x0b7b7d)",
+      "cert2_payload": "[0x0b7d80, 0x0b8131)",
+      "file_end": "[0x000000, 0x0b8140)"
+    }
+  },
+  "payload_digest_validation": {
+    "hashed_interval": "[0x000200, 0x0b72d0)",
+    "hashed_bytes_len": 749776,
+    "c49": {
+      "calculated_sha256": "af82a35e0983891ae21efd1d0736ac18dc9197757c2185a2e94b0705721bb322",
+      "cert2_embedded_digest": "af82a35e0983891ae21efd1d0736ac18dc9197757c2185a2e94b0705721bb322",
+      "match": true
+    },
+    "c50": {
+      "calculated_sha256": "fd95c268116d9bd8700234702921ca65b5322f05edb9e55e8112711fd9a470c1",
+      "cert2_embedded_digest": "fd95c268116d9bd8700234702921ca65b5322f05edb9e55e8112711fd9a470c1",
+      "match": true
+    }
+  },
+  "certificate_validation": {
+    "key_c1_modulus_prefix": "0xb282df487491ff750d2b14b80d26b7...",
+    "key_c2_modulus_prefix": "0xab3efe31c7a1c89b4b3e4e26aa47f3...",
+    "oem_unlock_key_modulus_prefix": "0xc2e1e94834f13bcbc0fb9bea87be96...",
+    "key_c2_matches_between_cert1_and_cert2": true,
+    "encoded_pss_salt_length_32": true,
+    "cert1_self_signed_verified": true,
+    "cert2_c49_signed_verified": true,
+    "cert2_c50_signed_verified": true,
+    "oem_unlock_key_is_distinct": true
+  },
+  "preloader_validation": {
+    "c50_emmc_boot_header_detected": true,
+    "normalized_lengths_match": true,
+    "normalized_length": 265756,
+    "total_differing_bytes": 569,
+    "expected_differing_bytes": 569,
+    "cluster_count": 15,
+    "code_region_identical": true
+  },
+  "code_and_strings_validation": {
+    "verify_unlock_token_interval": "[0x02ed00, 0x02efcc)",
+    "verify_unlock_token_len": 716,
+    "verify_unlock_token_identical": true,
+    "verify_unlock_token_instruction_count": 274,
+    "fastboot_init_interval": "[0x030218, 0x030828)",
+    "fastboot_init_len": 1552,
+    "fastboot_init_identical": true,
+    "fastboot_init_instruction_count": 640,
+    "string_fastboot_unlock_verify_in_c49": true,
+    "string_fastboot_unlock_verify_in_c50": true,
+    "string_fastboot_unlock_verity_in_c49": false,
+    "string_fastboot_unlock_verity_in_c50": false,
+    "strings_valid": true
+  }
+}

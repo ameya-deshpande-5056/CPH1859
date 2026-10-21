@@ -227,3 +227,4 @@ Comparing C.49 `preloader_oppo6771_17065.bin` (265,756 bytes) against C.50 `prel
 | Is there a distinct `fastboot_unlock_verity` code path? | **No.** Neither firmware contains `verity`. Both contain `verify` at identical offsets. | **`directly observed`** |
 | Why did the In-Depth Test app fail on C.50? | Because the application / vendor server enforces build fingerprint / date checks (`ro.build.display.id`), not because of any bootloader cryptographic change. | **`inferred`** |
 | Can C.50 be unlocked via a software-only route without an OEM token? | **No viable route found.** The token gating check in LK remains identical, enforcing efuse serial match and valid RSA-2048 signature. | **`directly observed`** |
+

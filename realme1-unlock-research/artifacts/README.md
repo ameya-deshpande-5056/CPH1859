@@ -17,6 +17,8 @@ This directory indexes diagnostic outputs, collected firmware metadata, logs, an
 | **ART-006** | `artifacts/firmware_access_blockage.md` | Access Blockage Report | `3f0a3421f2496134535f10ae81c72d0665a5dc1036166e2f5fba90ebe10b39a2` | Documentation of missing local ROM packages, device node DAC/MAC permissions, and blocked reverse engineering. | YES |
 | **ART-007** | `artifacts/c49_bootloader_format_analysis.md` | Firmware Reverse Engineering | `c94f1e2697b078b5783a46a511d85a0873742b211ed4921768f487e674da7c83` | Comprehensive analysis of C.49 MediaTek container format, ARMv7/Thumb-2 entry, memory layout, and fastboot unlock logic. | YES |
 | **ART-008** | `artifacts/c50_differential_analysis.md` | Differential Reverse Engineering | `31f2b2b3382e8abb49c8fafd72a7ebead5dae4b59c5b68f2568bbb486b1b48f2` | Differential reverse engineering of C.49 vs C.50 Little Kernel & Preloader, ASN.1 cert2 cryptographic dissection, and verify/verity resolution. | YES |
+| **ART-009** | `artifacts/c50_differential_validation.md` | Independent Validation Report | `080e6998d57695cf232aae0e6169c109b2b8f9c4f1933f5df2d5cabfb209a6c7` | Independent verification report confirming whole-file hashes, 315-byte diff, DER certificate fields, digest math, and signature verification. | YES |
+| **ART-010** | `artifacts/c50_differential_validation.json` | Machine-Readable Validation Data | `767cca25eccdff98002985e53d1755948716a883fdb1796c7cc7651c31ea9685` | JSON export of all independent validation checks, exact intervals, and cryptographic test results. | YES |
 
 ---
 

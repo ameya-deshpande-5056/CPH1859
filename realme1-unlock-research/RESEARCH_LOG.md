@@ -176,3 +176,27 @@
   5. **String Discrepancy Resolved:** Neither C.49 nor C.50 Little Kernel contains the string `fastboot_unlock_verity`. Both contain `fastboot_unlock_verify fail\n\n` at file offset `0x080BFC` (RAM `0x600809FC`). The reported `verity` string was an optical/transcription artifact on the device screen.
   6. **Preloader Identity:** Normalizing the 2,048-byte `EMMC_BOOT` header proves C.49 and C.50 Preloader code is 100% byte-identical, differing only in build timestamp strings and trailing signature block.
   7. **Generated Artifact:** Created `artifacts/c50_differential_analysis.md` (ART-008, SHA-256: `31f2b2b3...`).
+
+---
+
+## 2026-10-21 - Phase 5: Independent Validation of LK Differential Analysis
+
+- **Context:** Formal requirement to independently validate all C.49/C.50 Little Kernel and Preloader differential findings using a deterministic, reproducible verification script and machine-readable data generation.
+- **Commands Executed:**
+  ```bash
+  # Run validation toolchain
+  python3 scripts/validate_lk_differential.py \
+    --json-out artifacts/c50_differential_validation.json \
+    --markdown-out artifacts/c50_differential_validation.md
+  # Execute full unit test suite including differential validator tests
+  PYTHONPATH=src python3 -m unittest discover -s tests
+  ```
+- **Validation Results:**
+  1. **Integrity & Hashes:** Verified all 4 binaries match authoritative SHA-256 checksums (`c49_lk`: `30b48cd5...`, `c50_lk`: `58cd19a9...`, `c49_preloader`: `afe99890...`, `c50_preloader`: `2de60eda...`).
+  2. **Diff Enumeration:** Calculated exact byte diff in half-open intervals: `[0x07EA23, 0x07EA48)` (Cluster 1, span 37, 27 diffs), `[0x0B7F73, 0x0B7F93)` (Cluster 2, span 32, 32 diffs), `[0x0B8031, 0x0B8131)` (Cluster 3, span 256, 256 diffs). Total differing bytes: exactly 315.
+  3. **Container Layout & Digest Verification:** Confirmed MediaTek image container headers (`lk`, `cert1`, `cert2`). Calculated SHA-256 over exact payload range `[0x000200, 0x0B72D0)` (749,776 bytes) and proved exact byte match against embedded 32-byte digest in `cert2` under OID `2.16.886.2454.2.1`.
+  4. **Cryptographic Validation:** Confirmed ASN.1 DER PSS parameters (salt length 32, SHA-256, MGF1 SHA-256, trailer field 1). Cryptographically verified `cert1` is self-signed by `Key C1`, `cert2` is signed by `Key C2` (certified by `cert1`), and the hardcoded OEM unlock token public key modulus at RAM `0x6007EE48` is distinct from both MediaTek keys.
+  5. **Preloader Audit:** Verified C.50 2,048-byte `EMMC_BOOT` header normalization. Proved all 569 diffs reside in metadata strings (`__FILE__` macros) and signature block, confirming 100% executable code identity.
+  6. **Token-Gating & Strings:** Disassembled and verified `verify_unlock_token` and `fastboot_init` are 100% byte-identical. Confirmed string `fastboot_unlock_verify` exists in both and `fastboot_unlock_verity` is completely absent.
+  7. **Automated Unit Testing:** Created `tests/test_differential_validator.py` with 4 test cases. Full suite passes cleanly (17/17 tests).
+  8. **Generated Artifacts:** `artifacts/c50_differential_validation.md` (ART-009) and `artifacts/c50_differential_validation.json` (ART-010).
