@@ -16,6 +16,7 @@ This directory indexes diagnostic outputs, collected firmware metadata, logs, an
 | **ART-005** | `artifacts/evidence_audit.md` | Epistemic Audit | `0a1a65c800be18255f42d26d458af67c2f111308afa4b73f99b29f500faac8ab` | Claim-by-claim audit mapping all assertions to sources using the 5-tier epistemic taxonomy. | YES |
 | **ART-006** | `artifacts/firmware_access_blockage.md` | Access Blockage Report | `3f0a3421f2496134535f10ae81c72d0665a5dc1036166e2f5fba90ebe10b39a2` | Documentation of missing local ROM packages, device node DAC/MAC permissions, and blocked reverse engineering. | YES |
 | **ART-007** | `artifacts/c49_bootloader_format_analysis.md` | Firmware Reverse Engineering | `c94f1e2697b078b5783a46a511d85a0873742b211ed4921768f487e674da7c83` | Comprehensive analysis of C.49 MediaTek container format, ARMv7/Thumb-2 entry, memory layout, and fastboot unlock logic. | YES |
+| **ART-008** | `artifacts/c50_differential_analysis.md` | Differential Reverse Engineering | `31f2b2b3382e8abb49c8fafd72a7ebead5dae4b59c5b68f2568bbb486b1b48f2` | Differential reverse engineering of C.49 vs C.50 Little Kernel & Preloader, ASN.1 cert2 cryptographic dissection, and verify/verity resolution. | YES |
 
 ---
 

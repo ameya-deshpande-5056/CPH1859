@@ -90,3 +90,17 @@
   5. Confirm project variant scope: The firmware is built on the unified `oppo6771_17065` codebase (`Common_software_project="17065"`), confirmed by connected device properties (`ro.separate.soft = 17066`, `vendor.gsm.project.baseband = OPPO6771_17065`). Findings apply equally across CPH1859 and sister sub-models.
 - **Reason:** Rigorous, instruction-by-instruction verification correcting earlier preliminary drafting hypotheses.
 - **Alternatives Rejected:** Assuming relative sector `0x16` was absolute without tracing partition driver offset arithmetic; asserting `clean_flash_unlock_data` was reached on failed boot without tracing all call xrefs.
+
+---
+
+### DEC-009: C.50 Little Kernel Differential Identity, cert2 Dissection, and Verify/Verity Resolution
+- **Date:** 2026-10-21
+- **Status:** APPROVED / CURRENT
+- **Context:** Acquired C.50 static firmware images (`lk.img`, `preloader_emmc.img`) allowed an exhaustive binary diff and reverse engineering evaluation against the C.49 baseline.
+- **Decision:**
+  1. Confirm Little Kernel code identity: Across all 753,984 bytes, exactly 315 bytes differ in 3 isolated non-executable clusters (Cluster 1: 27-byte build timestamp string in `.rodata`; Cluster 2: 32-byte payload SHA-256 digest in `cert2`; Cluster 3: 256-byte RSASSA-PSS signature in `cert2`). All executable code (`.text`), constants, and data sections are 100% byte-identical.
+  2. Confirm token verifier and Fastboot initialization identity: `verify_unlock_token()` (RAM `0x6002EB00` – `0x6002EDCC`, 716 bytes) and `fastboot_init()` (RAM `0x60030018` – `0x60030628`, 1,552 bytes), their basic blocks, literal pools, branches, and all 44 call targets are 100% byte-identical.
+  3. Classify `cert2` structure: Formally document `cert2` (file offset `0x0B7B80` – `0x0B8131`) as an ASN.1 DER MediaTek Secure Boot v2 Content Certificate verified by the Preloader, containing the LK payload SHA-256 digest under MediaTek vendor OID `2.16.886.2454.2.1` and an RSASSA-PSS SHA-256 signature signed by intermediate key `Key C2` (certified by Root Key `Key C1` in `cert1`). Decouple `cert2` from fastboot token verification.
+  4. Conclusively resolve the `verify` vs `verity` discrepancy: Both C.49 and C.50 Little Kernel contain `fastboot_unlock_verify fail\n\n` at `0x080BFC` and `the serial is not match\n` at `0x0804F8`. Neither binary contains `fastboot_unlock_verity`. The on-screen text was an optical/transcription artifact on the low-resolution LCD console.
+- **Reason:** Supported by complete binary diffing, Capstone instruction-level tracing, OpenSSL ASN.1 DER parsing, and Python `cryptography` cryptographic verification.
+- **Alternatives Rejected:** Hypothesizing that C.50 altered token verification logic or introduced new bootloader security checks; assuming `cert2` participates in fastboot token gating without tracing cross-references.

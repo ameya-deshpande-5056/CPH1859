@@ -2,27 +2,29 @@
 
 ## Authoritative Progress Indicator
 
-- **Project Status:** ACTIVE RESEARCH / PHASE 4 AUDIT & PREREQUISITE MATRIX COMPLETE
-- **Current Phase:** Phase 4: C.49 Findings Audit & C.50 Differential Research
-- **Current Task ID & Description:** P004: C.49 findings audit & software-only prerequisite matrix
+- **Project Status:** ACTIVE RESEARCH / C.50 DIFFERENTIAL REVERSE ENGINEERING COMPLETE
+- **Current Phase:** Phase 4: C.50 Differential Reverse Engineering & Cryptographic Container Analysis
+- **Current Task ID & Description:** D004: C.50 Little Kernel differential analysis & cert2 dissection
 - **Overall Completion Estimate:** 100% of Phase 1, Phase 2, Phase 3, and Phase 4 research deliverables
-- **Last Completed Milestone:** Comprehensive technical audit of C.49 Little Kernel findings delivered: verified token sector offset (`0x7816` in `reserve4`), embedded RSA-2048 public key (`0x6007ee48`), hardware WDT reset call (`0x6000cd30`), `clean_flash_unlock_data` restricted relocking scope (`0x60036920`), and software-only route prerequisite classification matrix.
-- **Formal Project Outcome:** **`BLOCKED BY MISSING FIRMWARE OR ACCESS`** (for software-only unlock on live C.50 device; C.49 static baseline fully audited).
-- **Primary Technical Findings (Audited):**
-  1. **Token Storage Coordinates:** `verify_unlock_token()` (`0x6002eb00`) calls `read_reserve4` (`0x6002c794`), which adds base sector `0x7800` to argument `0x16`, establishing the actual token location as **sector `0x7816`** (`0x00f02c00` bytes into partition `reserve4`). Read length is 8 sectors (4,096 bytes).
-  2. **Serial & Signature Checks:** Compares 16 bytes of SoC efuse serial via `memcmp` against the token buffer (`sp + 0x688`). Validates a 256-byte RSA-2048 PKCS#1 v1.5 signature with SHA-256 against an OEM public key modulus embedded in `.rodata` at RAM **`0x6007ee48`** (file offset `0x7f048`).
-  3. **Fastboot Exit Mechanism:** On token verification failure, `fastboot_init()` calls `0x6000cd30` (`[WDT] mtk_arch_reset`), writing magic `0x1971` to watchdog timer registers (`0x10007000`/`0x10007008`) to force an immediate hard reboot into normal ColorOS.
-  4. **Relocking Path Scope:** `clean_flash_unlock_data()` (`0x6002eacc`) is called **exclusively from `cmd_flashing_lock()` at `0x60036920`** during intentional user relocking. It zeroes the 4 KB token slot at sector `0x7816` of `reserve4`. It is never called on failed boot and has zero side effects on other partitions.
-  5. **FRP Permission Read:** `get_unlock_permission()` (`0x60036390`) calculates 64-bit offset `partition_size - 4` on `"frp"` and reads 4 bytes. If `0`, `cmd_flashing_unlock()` rejects with `"Unlock operation is not allowed"`.
-  6. **Hardware Compatibility:** Built on unified `oppo6771_17065` codebase (`Common_software_project="17065"`), confirmed by connected device properties (`ro.separate.soft = 17066`, `vendor.gsm.project.baseband = OPPO6771_17065`). Findings apply across CPH1859 and sister variants.
-  7. **C.50 Firmware Status:** Official Realme download portals have removed Realme 1 packages post-EOL; third-party repositories host C.09/C.18/C.49, but no verified C.50 full package is currently obtainable.
+- **Last Completed Milestone:** Delivered exhaustive comparative static reverse engineering between C.49 and C.50 Little Kernel & Preloader: proved 100% executable code and call graph identity, parsed and cryptographically validated `cert2` (SHA-256 payload digest and RSASSA-PSS signature), proved decoupling of `cert2` from fastboot gating, and conclusively resolved device screen string discrepancy (`fastboot_unlock_verify` identical in both).
+- **Formal Project Outcome:** **`NO VIABLE SOFTWARE-ONLY UNLOCK ROUTE FOUND`** (live C.50 device enforces identical token verification gating; bootloader code is 100% identical between C.49 and C.50).
+- **Primary Technical Findings (Audited & Verified):**
+  1. **Token Storage Coordinates:** `verify_unlock_token()` (`0x6002EB00`) calls `read_reserve4` (`0x6002C794`), which adds base sector `0x7800` to argument `0x16`, establishing the actual token location as **sector `0x7816`** (`0x00F02C00` bytes into partition `reserve4`). Read length is 8 sectors (4,096 bytes).
+  2. **Serial & Signature Checks:** Compares 16 bytes of SoC efuse serial via `memcmp` against the token buffer (`sp + 0x688`). Validates a 256-byte RSA-2048 PKCS#1 v1.5 signature with SHA-256 against an OEM public key modulus embedded in `.rodata` at RAM **`0x6007EE48`** (file offset `0x7F048`).
+  3. **Fastboot Exit Mechanism:** On token verification failure, `fastboot_init()` calls `0x6000CD30` (`[WDT] mtk_arch_reset`), writing magic `0x1971` to watchdog timer registers (`0x10007000`/`0x10007008`) to force an immediate hard reboot into normal ColorOS.
+  4. **Relocking Path Scope:** `clean_flash_unlock_data()` (`0x6002EACC`) is called **exclusively from `cmd_flashing_lock()` at `0x60036920`** during intentional user relocking. It zeroes the 4 KB token slot at sector `0x7816` of `reserve4`. It is never called on failed boot and has zero side effects on other partitions.
+  5. **C.49 vs C.50 Little Kernel Diff:** Exactly 315 bytes differ across 753,984 bytes: Cluster 1 (27 bytes in `.rodata` build metadata string at `0x7EA23`), Cluster 2 (32 bytes in `cert2` payload SHA-256 digest at `0xB7F73`), and Cluster 3 (256 bytes in `cert2` RSASSA-PSS signature at `0xB8031`). All `.text`, constants, and data sections are 100% byte-identical.
+  6. **Cryptographic Role of `cert2`:** MediaTek Secure Boot v2 Content Certificate verified by Preloader during LK loading from flash. Contains payload digest (OID `2.16.886.2454.2.1`) and RSASSA-PSS signature signed by intermediate key `Key C2` (certified by Root Key `Key C1` in `cert1`). It is decoupled from runtime Fastboot execution and token validation.
+  7. **Spelling Discrepancy Resolved:** The string `fastboot_unlock_verity` is completely absent from C.49 LK, C.50 LK, and Preloader. Both C.49 and C.50 contain `fastboot_unlock_verify fail\n\n` at `0x080BFC`. The observed string on the device screen was an optical/transcription artifact on the low-resolution LCD console.
+  8. **Preloader Code Identity:** C.49 and C.50 Preloaders are 100% code-identical after normalizing the 2,048-byte `EMMC_BOOT` header.
 - **Next Three Actions (Prioritized):**
-  1. Review audited technical findings in `artifacts/c49_bootloader_format_analysis.md` and prerequisite matrix in `REPORT.md`.
-  2. If an authenticated C.50 full package (`.ozip` or dump) becomes available from an official or trusted archive, perform binary diffing against C.49 `lk.img`.
-  3. Maintain strictly non-invasive, read-only posture on the target device.
-- **Last Updated:** 2026-10-21T12:40:00+05:30
+  1. Review comprehensive differential analysis report in `artifacts/c50_differential_analysis.md` (ART-008).
+  2. Maintain strictly non-invasive, read-only posture on the target device.
+  3. Synthesize final project outcomes across `REPORT.md` and evidence artifacts.
+- **Last Updated:** 2026-10-21T15:30:00+05:30
 - **Current Git Branch:** main
 - **Relevant Artifact Paths:**
+  - `realme1-unlock-research/artifacts/c50_differential_analysis.md` (ART-008)
   - `realme1-unlock-research/artifacts/c49_bootloader_format_analysis.md` (ART-007)
   - `realme1-unlock-research/artifacts/evidence_audit.md` (ART-005)
   - `realme1-unlock-research/artifacts/firmware_access_blockage.md` (ART-006)

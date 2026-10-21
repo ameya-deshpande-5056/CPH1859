@@ -22,10 +22,21 @@
 | **F003** | C.49 Little Kernel container layout & static reverse engineering | **DONE** | S004 | Phase 3 |
 | **C001** | C.50 firmware acquisition & mirror search | **DONE** | F003 | Phase 4 |
 | **P004** | C.49 findings audit & software-only prerequisite matrix | **DONE** | C001 | Phase 4 |
+| **D004** | C.50 Little Kernel differential analysis & cert2 dissection | **DONE** | P004 | Phase 4 |
 
 ---
 
 ## Phase 4 Task Details
+
+### D004: C.50 Little Kernel Differential Analysis & cert2 Dissection
+- **Status:** DONE
+- **Objective:** Perform exhaustive differential reverse engineering between C.49 `lk.img` and C.50 `lk.img`. Establish complete function boundaries for `verify_unlock_token()` and `fastboot_init()`, compare call graphs, parse and verify the ASN.1 DER structure of `cert2` (file offsets `0xB7B80`–`0xB8131`), verify code/data references across LK, and definitively resolve the `verify` vs `verity` string discrepancy.
+- **Required Inputs:** `~/Realme1/C49_extracted/lk.img`, `~/Realme1/C50_research/c50_static/lk.img`, `preloader_emmc.img`.
+- **Actions Performed:** Executed full 753,984-byte binary diff (found exactly 315 changed bytes in 3 clusters); disassembled and traced `verify_unlock_token()` (`0x6002EB00`–`0x6002EDCC`, 716 bytes) and `fastboot_init()` (`0x60030018`–`0x60030628`, 1,552 bytes), confirming 100% byte-identity across code, basic blocks, literal pools, and all 44 call targets; decoded ASN.1 DER structure of `cert2` via OpenSSL and Python `cryptography`, proving Cluster 2 (`0xB7F73`) is the exact SHA-256 hash of LK payload (`0x200`–`0xB72D0`) and Cluster 3 (`0xB8031`) is the RSASSA-PSS SHA-256 signature signed by intermediate key `Key C2`; verified zero references from LK code to `cert2`; searched string tables proving `fastboot_unlock_verity` is absent from all firmware and both C.49 and C.50 execute `fastboot_unlock_verify fail\n\n` at `0x080BFC`; compared preloaders proving code identity; generated research artifact `artifacts/c50_differential_analysis.md` (ART-008).
+- **Evidence & Artifact References:** `artifacts/c50_differential_analysis.md`, `DECISIONS.md`.
+- **Result & Confidence Level:** Complete, 100% confidence.
+
+---
 
 ### P004: C.49 Findings Audit & Software-Only Prerequisite Matrix
 - **Status:** DONE
@@ -55,14 +66,6 @@
 - **Actions Performed:** Verified SHA-256 hashes; identified MediaTek `union prt_img_hdr` container layout (magic `0x58881688`/`0x58891689`, payload size `0x000b70cc`, `cert1` at `0xb72d0`, `cert2` at `0xb7b80`); disassembled ARMv7 exception vectors and self-relocation routine proving DRAM base `0x60000000`; traced mode switch to Thumb-2 at `kmain()` (`0x6002a944`); disassembled `fastboot_init()` at `0x60030018` and token verifier `0x6002eb00`; disassembled `flashing get_unlock_ability` (`0x60036518`) and `flashing unlock` (`0x60036648`); confirmed `frp` partition flag offset; produced artifact `artifacts/c49_bootloader_format_analysis.md`.
 - **Evidence & Artifact References:** `artifacts/c49_bootloader_format_analysis.md` (SHA-256: `907ba86703614d22a34e8366ad90dca75911b732642f2c51bc543deb7cc20cd2`).
 - **Result & Confidence Level:** Complete, 100% confidence.
-
----
-
-### C001: C.50 Firmware Acquisition & Comparative Diffing
-- **Status:** PENDING / BLOCKED ON C.50 ARTIFACTS
-- **Objective:** Sourcing verified CPH1859 C.50 full OTA package (`.ozip`), decrypting using `bkerler/oppo_ozip_decrypt`, and performing binary diffing between C.49 and C.50 `lk.img` to resolve the `fastboot_unlock_verify` vs `fastboot_unlock_verity` string discrepancy and confirm whether token verification checks were altered.
-- **Required Inputs:** `CPH1859EX_11_OTA_0500_all_*.ozip` or verified partition dump.
-- **Current Blocker:** C.50 full package not yet sourced in local workspace.
 
 ---
 

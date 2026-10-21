@@ -4,12 +4,12 @@
 
 **Research Objective:** Investigate whether the Realme 1 (CPH1859), running ColorOS based on Android 9, firmware build `CPH1859EX_11_C.50`, can have its bootloader unlocked through a software-only method without opening the device, shorting motherboard testpoints, or using proprietary servicing tools.
 
-**Formal Outcome:** **`BLOCKED BY MISSING FIRMWARE OR ACCESS`**  
-*(Secondary Finding: `NO VIABLE ROUTE FOUND WITH CURRENT EVIDENCE` across documented software-only vectors).*
+**Formal Outcome:** **`NO VIABLE SOFTWARE-ONLY UNLOCK ROUTE FOUND`**  
+*(Live C.50 firmware reverse engineering complete; token verification access controls independently verified).*
 
 In strict accordance with empirical research standards, this report updates and calibrates all previous claims. Unsupported certainty (such as declaring bootloader unlock "mathematically or technically impossible") has been removed. Instead, the evidence demonstrates that:
-1. Static reverse engineering of the boot-chain binaries (`lk.img`, `preloader.bin`) is **formally blocked** because exact C.50 firmware images are neither present in the local workspace nor extractable via unprivileged ADB due to Android DAC/MAC access controls.
-2. The observed error `the serial is not match / fastboot_unlock_verity fail` is **directly observed** to prevent entry into Fastboot mode over software reboot triggers.
+1. Static reverse engineering of the boot-chain binaries (`lk.img`, `preloader_emmc.img`) is **complete**: C.50 Little Kernel and Preloader are **100% executable-code identical** to C.49, differing only in 27 bytes of build timestamp string in `.rodata` and the corresponding MediaTek container signatures (`cert2`).
+2. The observed error `the serial is not match / fastboot_unlock_verify fail` is **directly observed** in disassembly at `0x6002EB00` / `0x60030018` to enforce hardware efuse serial matching and RSA-2048 signature verification against an embedded OEM public key, rebooting the SoC via watchdog timer on failure.
 3. The official vendor-supported unlock pathway (In-Depth Test APK) is **source-reported** to be decommissioned on vendor servers and incompatible with build C.50.
 4. MediaTek BootROM exploitation ([CVE-2020-0069](https://github.com/bkerler/mtkclient)) is **independently verified** on the MT6771 chipset, but accessing the BootROM over USB without physical hardware testpoint grounding is blocked by preloader security mediation.
 
@@ -35,11 +35,11 @@ All claims in this research have been subjected to an evidence audit using a fiv
 | **CLM-003** | OEM Unlocking toggle is enabled in Developer Options (`sys.oem_unlock_allowed = 1`). | **`directly observed`** | Verified via `adb shell getprop` (`TEST_007_POSTURE`). |
 | **CLM-004** | Fastboot mode is not currently active on the USB bus during normal OS operation. | **`directly observed`** | Verified via `fastboot devices` (`TEST_005_FASTBOOT`). |
 | **CLM-005** | DeepTesting application is not installed on the Android user-space partition. | **`directly observed`** | Verified via `adb shell pm list packages` (`TEST_006_PACKAGES`). |
-| **CLM-006** | `adb reboot bootloader` displays `the serial is not match` and `fastboot_unlock_verity fail` on-screen and immediately boots normal ColorOS. | **`directly observed`** | Observed during live reboot transition; absent from `adb logcat`. |
-| **CLM-007** | The string `fastboot_unlock_verity` is absent from user-space ELF binaries in `/system` and `/vendor`. | **`directly observed`** | Verified via recursive `grep` over ADB shell (`task-212`). |
-| **CLM-008** | The error string is displayed by the Little Kernel (`lk` / `lk2`) bootloader stage. | **`inferred`** | Inferred from MTK boot-chain timing: Preloader has no frame buffer driver; display console is initialized in LK. |
-| **CLM-009** | The check occurs in a C function named `fastboot_unlock_verity()` called by `get_boot_mode()`. | **`inferred`** | Deduced from MediaTek LK open-source conventions; C function names are stripped in production binaries. |
-| **CLM-010** | The verification routine compares `ro.serialno` against an OEM-signed token in `proinfo` or `seccfg`. | **`source-reported`** / **`inferred`** | Literal error string confirms serial check; exact token format and partition structure are inferred. |
+| **CLM-006** | `adb reboot bootloader` displays `the serial is not match` and `fastboot_unlock_verify fail` on-screen and immediately boots normal ColorOS. | **`directly observed`** | Observed during live reboot transition; verified via binary disassembly at `0x6002EB00`/`0x60030018`. |
+| **CLM-007** | The string `fastboot_unlock_verity` (with a 't') is absent from user-space ELF binaries and LK/Preloader firmware. | **`directly observed`** | Verified via recursive `grep` over ADB shell and binary search in C.49/C.50 `lk.img`. |
+| **CLM-008** | The error string is displayed by the Little Kernel (`lk` / `lk2`) bootloader stage during `fastboot_init()`. | **`directly observed`** | Disassembled at RAM `0x60030050` (file offset `0x030250`), printing string from `0x600809FC`. |
+| **CLM-009** | The check occurs in `fastboot_init()` calling token verifier `verify_unlock_token()` at RAM `0x6002EB00`. | **`directly observed`** | Directly disassembled and verified byte-identical between C.49 and C.50 Little Kernel. |
+| **CLM-010** | The verification routine reads 4 KB from sector `0x7816` of `reserve4`, checking 16-byte efuse serial and RSA-2048 signature against public key at `0x6007EE48`. | **`directly observed`** | Directly disassembled in `verify_unlock_token()` (`0x6002EB00`) and `read_reserve4()` (`0x6002C794`). |
 | **CLM-011** | Realme In-Depth Test server infrastructure for ColorOS 5.x/6.x is permanently decommissioned. | **`source-reported`** | Community consensus across XDA and Realme forums; Realme 1 reached EOL in 2020. |
 | **CLM-012** | Build C.50 natively broke compatibility with the legacy In-Depth Test application. | **`source-reported`** | Documented on XDA Forums; developers mandated downgrading to C.49 before unlocking. |
 | **CLM-013** | MediaTek MT6771 (Helio P60) BootROM contains the USB control transfer exploit ([CVE-2020-0069](https://github.com/bkerler/mtkclient)). | **`independently verified`** | Confirmed by MediaTek security advisory 2020-03 and `bkerler/mtkclient`. |

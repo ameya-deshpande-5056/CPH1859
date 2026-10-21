@@ -136,3 +136,43 @@
   5. **Hardware Compatibility:** Verified `oppo6771_17065` is the unified BSP platform (`ro.separate.soft = 17066`, `vendor.gsm.project.baseband = OPPO6771_17065`), confirming conclusions apply across CPH1859 sub-variants.
   6. **C.50 Firmware Search:** Online search confirms official Realme support portals removed Realme 1 packages post-EOL; third-party mirrors host earlier builds (C.09, C.18, C.49), but no verified C.50 full package is currently obtainable.
   7. **Software-Only Prerequisites:** Formulated explicit prerequisite matrix classifying OEM authorization, ordinary ADB, Fastboot command access, software vulnerability, and BootROM routes. All software-only routes remain blocked by verified access controls.
+
+---
+
+## 2026-10-21 - Phase 4: C.49 vs C.50 Little Kernel Differential Reverse Engineering & cert2 Dissection
+
+- **Context:** Acquired C.50 static firmware binaries in `~/Realme1/C50_research/c50_static/` (`lk.img`, `preloader_emmc.img`, `preloader_ufs.img`). Executed full comparative static analysis against C.49 Little Kernel baseline (`~/Realme1/C49_extracted/lk.img`).
+- **Commands Executed:**
+  ```bash
+  # Hash verification
+  sha256sum ~/Realme1/C49_extracted/lk.img ~/Realme1/C50_research/c50_static/lk.img
+  # Full binary diff and cluster analysis
+  python3 scratch/diff_lk.py
+  # ASN.1 DER extraction & OpenSSL inspection
+  openssl asn1parse -inform DER -in scratch/cert2_c49.der
+  openssl asn1parse -inform DER -in scratch/cert2_c50.der
+  # SHA-256 payload hash verification
+  python3 scratch/test_hashes.py
+  # Cryptographic signature validation with Python cryptography
+  python3 scratch/verify_sigs2.py
+  # Disassemble verify_unlock_token and fastboot_init full extents and call graphs
+  python3 scratch/find_vut_boundary.py
+  python3 scratch/find_fb_end.py
+  python3 scratch/compare_funcs.py
+  # String table query across C.49 and C.50 binaries
+  python3 scratch/check_spelling.py
+  # Preloader differential diff
+  python3 scratch/diff_preloader.py
+  ```
+- **Observed Findings:**
+  1. **315 Differing Bytes Total:** Across all 753,984 bytes of `lk.img`, exactly 315 bytes differ in 3 isolated clusters: Cluster 1 (`0x7EA23`–`0x7EA47`, 27 bytes in `.rodata` build string); Cluster 2 (`0xB7F73`–`0xB7F92`, 32 bytes in `cert2`); Cluster 3 (`0xB8031`–`0xB8130`, 256 bytes in `cert2`).
+  2. **Code Identity:** The entire executable payload (`.text`), constants (`.rodata`), and data (`.data`) from `0x000` to `0x7EA22` and from `0x7EA48` to `0xB72CF` are 100% byte-identical.
+  3. **Function Extents & Call Graphs:**
+     - `verify_unlock_token()`: RAM `0x6002EB00` to `0x6002EDCC` (716 bytes / 0x2CC bytes). All 15 call targets are 100% byte-identical.
+     - `fastboot_init()`: RAM `0x60030018` to `0x60030628` (1,552 bytes / 0x610 bytes). All 29 call targets are 100% byte-identical.
+  4. **Cryptographic Validation of `cert2`:**
+     - Cluster 2 (`0xB7F73`) is verified by exact SHA-256 calculation to be the SHA-256 digest of Little Kernel executable payload `0x200` to `0xB72D0` (749,776 bytes).
+     - Cluster 3 (`0xB8031`) is verified using Python `cryptography` as the RSASSA-PSS SHA-256 digital signature over `cert2`'s `tbsCertificate` signed by intermediate key `Key C2` (certified by Root Key `Key C1` in `cert1`).
+  5. **String Discrepancy Resolved:** Neither C.49 nor C.50 Little Kernel contains the string `fastboot_unlock_verity`. Both contain `fastboot_unlock_verify fail\n\n` at file offset `0x080BFC` (RAM `0x600809FC`). The reported `verity` string was an optical/transcription artifact on the device screen.
+  6. **Preloader Identity:** Normalizing the 2,048-byte `EMMC_BOOT` header proves C.49 and C.50 Preloader code is 100% byte-identical, differing only in build timestamp strings and trailing signature block.
+  7. **Generated Artifact:** Created `artifacts/c50_differential_analysis.md` (ART-008, SHA-256: `31f2b2b3...`).
