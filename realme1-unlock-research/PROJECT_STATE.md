@@ -2,11 +2,11 @@
 
 ## Authoritative Progress Indicator
 
-- **Project Status:** ACTIVE RESEARCH / PHASE 9 STATIC PATH AUDIT COMPLETE
-- **Current Phase:** Phase 9: LK/PSS data flow and preloader reset/DA uncertainty audit
-- **Current Task ID & Description:** P009: Resolve LK/PSS data flow, preloader DA-call uncertainty, and emergency reset reachability
+- **Project Status:** ACTIVE RESEARCH / PHASE 10 DEEPTESTING REVERSE ENGINEERING COMPLETE
+- **Current Phase:** Phase 10: DeepTesting application, framework routing, and HAL persistence analysis
+- **Current Task ID & Description:** P010: Reverse-engineer decompiled DeepTesting APK and map end-to-end token handoff
 - **Overall Completion Estimate:** 100% of the requested read-only audit deliverables; exact installed CPH1859 C.50 image provenance remains open
-- **Last Completed Milestone:** Traced the exact LK arguments to `0x600567C0`, separated the outer token-field SHA-256/RSA caller from the internal PSS verifier, rescanned preloader string anchors against executable code, traced direct watchdog-reset transfers, corrected string-offset/function-address confusion, and added `scripts/validate_remaining_paths.py`.
+- **Last Completed Milestone:** Reverse-engineered decompiled DeepTesting APK (`com.coloros.deeptesting`), recovered payload encryption scheme (`AesEncryptUtils`), traced framework IPC (`OppoEngineerService`) to native HAL daemon (`vendor.oppo.engnative.engineer@1.0-service`), verified raw persistence to `reserve4` sector `0x7816` (`0x00F02C00`), and reconciled the Little Kernel verification gate. Produced `ART-017`.
 - **Formal Project Outcome:** **`NO VIABLE SOFTWARE-ONLY UNLOCK ROUTE FOUND IN THE ANALYZED EVIDENCE`** (C.49 and the CPH1861-targeted C.50 reference enforce identical token gating; exact installed CPH1859 C.50 partition provenance remains open).
 - **Primary Technical Findings (Audited & Verified):**
   1. **Token Storage Coordinates:** `verify_unlock_token()` (`0x6002EB00`) calls `read_reserve4` (`0x6002C794`), which adds base sector `0x7800` to argument `0x16`, establishing the actual token location as **sector `0x7816`** (`0x00F02C00` bytes into partition `reserve4`). Read length is 8 sectors (4,096 bytes).
@@ -21,13 +21,15 @@
   10. **Exact PSS input:** At `0x6002ed44`, LK passes a precomputed 32-byte `mHash` from SHA-256 over token bytes `+0x100..+0x10f`; `0x600567C0` performs PSS encoding checks and does not receive raw message bytes.
   11. **Preloader call-graph correction:** `usbdl_*`, `bldr_handshake`, `S-CHIP`/`NS-CHIP`, and BROM offsets are diagnostic/source strings, not proven function entry points. Conservative direct/PC-relative references to them were not found; table/indirect dispatch remains unknown.
   12. **Emergency reset:** Executable watchdog routines at raw `0x2ae34`, `0x2ae44`, and `0x2aef0` have direct internal callers/transfers. The BROM strings do not establish a host-triggerable command path.
+  13. **DeepTesting End-to-End Pipeline Proven:** Decompiled APK analysis proves `unlockCode` was fetched from `https://lkf.realmemobile.com`, decoded from 544 hex chars to 272 binary bytes, transferred via `OppoEngineerManager.fastbootUnlock` to HAL daemon `vendor.oppo.engnative.engineer@1.0-service`, and written directly to sector `0x7816` (`0x00F02C00`) of `/dev/block/.../reserve4`. Exit-test zeroing writes a single `0x00` byte. APK v1.0.1 explicitly requires model prefix `RMX` (excluding `CPH1859`). Decommissioning of the backend completely closes the official software authorization route.
 - **Next Three Actions (Prioritized):**
   1. Acquire and authenticate exact CPH1859 C.50 LK/preloader images with independent partition provenance.
   2. Use a loader-aware static-analysis tool to resolve preloader table/indirect DA and security dispatch; do not test the reset path on the phone.
-  3. If available, statically inspect the historical ColorOS 5.2/6.0 DeepTesting APK for token serialization; maintain the strictly read-only posture.
-- **Last Updated:** 2026-10-21T17:30:00+05:30
+  3. Synthesize final comprehensive investigation report integrating Little Kernel, Preloader, DeepTesting APK, and vendor HAL.
+- **Last Updated:** 2026-10-21T18:12:00+05:30
 - **Current Git Branch:** main
 - **Relevant Artifact Paths:**
+  - `realme1-unlock-research/artifacts/deeptesting_decompiled_analysis.md` (ART-017)
   - `realme1-unlock-research/artifacts/authorization_protocol.md` (ART-012)
   - `realme1-unlock-research/artifacts/alternative_unlock_paths.md` (ART-013)
   - `realme1-unlock-research/artifacts/security_findings.md` (ART-014)

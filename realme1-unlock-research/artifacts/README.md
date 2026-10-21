@@ -25,6 +25,7 @@ This directory indexes diagnostic outputs, collected firmware metadata, logs, an
 | **ART-014** | `artifacts/security_findings.md` | Security Findings & Audit | `9ba310f09bc00c185acb29b54ab0d8bfbe0f065b3b592690fe71966e7904e3fb` | Systematic evaluation of 8 candidate bypass hypotheses, cryptographic parameters, bounds safety, and epistemic classifications. | YES |
 | **ART-015** | `artifacts/research_evidence_audit.md` | Evidence Reconciliation | `7448dc4a67508a71ffc86a2eb73aa2f267c10dcf76cc5b3e0c010159505c4085` | Current hash/provenance audit, exact LK/PSS caller-versus-verifier data flow, trust separation, and calibrated preloader conclusions. | YES |
 | **ART-016** | `artifacts/preloader_architecture_map.md` | Preloader Architecture Map | `2aaf179ac64cc49c2905b0a31a3a61395bf85282ff62ffa821f9023c977b7223` | Corrected static preloader entry, string-anchor limitation, direct watchdog edges, DA uncertainty, BROM-reset reachability, and CPH1859/CPH1861 caveats. | YES |
+| **ART-017** | `artifacts/deeptesting_decompiled_analysis.md` | Application Reverse Engineering | `c8e50b7dc0a0406f4302041052afe38fe26e162996c71f4b213411a1e4dd2db6` | End-to-end decompiled DeepTesting APK protocol, framework routing, native HAL partition persistence, and Little Kernel handoff. | YES |
 
 ---
 

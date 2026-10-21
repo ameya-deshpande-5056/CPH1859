@@ -31,6 +31,7 @@
 | **P007** | Assess security-relevant findings & candidate bypass hypotheses | **DONE** | P006 | Phase 7 |
 | **P008** | Reconcile evidence, provenance, and preloader uncertainty | **DONE** | P007 | Phase 8 |
 | **P009** | Resolve LK/PSS data flow, preloader DA-call uncertainty, and emergency reset reachability | **DONE** | P008 | Phase 9 |
+| **P010** | Reverse-engineer decompiled DeepTesting APK and map end-to-end token handoff | **DONE** | P009 | Phase 10 |
 
 ---
 
@@ -204,4 +205,16 @@
 - **Required Inputs:** V001.
 - **Actions Performed:** Rewrote `REPORT.md` with calibrated findings; recorded DEC-006; updated state files and registries.
 - **Evidence & Artifact References:** `REPORT.md`, `DECISIONS.md`, `PROJECT_STATE.md`, `NEXT_AGENT.md`.
+- **Result & Confidence Level:** Complete, 100% confidence.
+
+---
+
+## Phase 10 Task Details
+
+### P010: Reverse-Engineer Decompiled DeepTesting APK & Map End-to-End Token Handoff
+- **Status:** DONE
+- **Objective:** Reverse-engineer the decompiled OEM DeepTesting APK (`com.coloros.deeptesting`) provided at `/home/ameya/Realme1/DeepTesting_realme-release_signed.apk_Decompiler.com`. Trace backend endpoints, request data serialization, payload encryption/decryption, token delivery format, system service IPC (`OppoEngineerManager`), native HAL routing (`vendor.oppo.engnative.engineer@1.0-service`), physical storage persistence (`reserve4` sector `0x7816`), and bootloader gating reconciliation (`verify_unlock_token()` in `lk.img`).
+- **Required Inputs:** `/home/ameya/Realme1/DeepTesting_realme-release_signed.apk_Decompiler.com`, `system/framework/oat/arm64/services.vdex`, `vendor/bin/hw/vendor.oppo.engnative.engineer@1.0-service`, `lk.img`, `/home/ameya/Realme1/BOOTLOADER_FIX_V1.0.docx`.
+- **Actions Performed:** Fully decompiled and audited Java source code, identified AES-128-ECB PKCS5Padding key derivation in `AesEncryptUtils`, extracted native HAL daemon from `vendor.img`, disassembled functions `0x9C60` and `0x5258` proving direct write to sector `0x7816` (`0x00F02C00`) of `reserve4`, reconciled Little Kernel PSS verifier, discovered explicit APK `RMX` prefix check excluding `CPH1859`, and validated community hardware testpoint rationale. Produced `artifacts/deeptesting_decompiled_analysis.md` (`ART-017`).
+- **Evidence & Artifact References:** `artifacts/deeptesting_decompiled_analysis.md` (`ART-017`), `artifacts/README.md`.
 - **Result & Confidence Level:** Complete, 100% confidence.
