@@ -8,16 +8,18 @@
 - `preloader_emmc.img` (C.50 research image, 267,804 bytes, SHA-256: `2de60eda847de8ea3ae44368fc905f57dd63a842a3c7ad455f0fd1c326ebaeca`)
 - `lk.img` (C.49 and C.50 Little Kernel binaries, 753,984 bytes)
 
+> **Phase 9 supersession note:** This historical ART-011 preserves the earlier architecture model. The current audit confirms the strings and source inventory but does not treat `bldr_handshake`, `usbdl_send_da`, `usbdl_vfy_da`, `usbdl_jump_da`, or BROM strings as resolved function entry points. See `artifacts/preloader_architecture_map.md` and `artifacts/research_evidence_audit.md` for the conservative call-site scan, actual watchdog edges, and explicit unknowns.
+
 ---
 
 ## Executive Summary
 
 1. **Static Preloader Code Identity:** Stripping the 2,048-byte `EMMC_BOOT` header from `preloader_emmc.img` confirms that the executable code region (`0x00000` to `0x325A4`, 206,244 bytes) is **100% byte-for-byte identical** between C.49 and C.50. All 569 differing bytes reside strictly within build timestamp metadata strings (`17065_USR_202005090539` vs `17065_USR_202010162303`) and the trailing cryptographic signature block (`[0x040CFC, 0x040E1C)`).
 2. **Preloader USB Interface Architecture:** The Preloader exposes a USB CDC ACM virtual COM port (`0e8d:2000`). It implements a strict handshake and Download Agent (DA) dispatch state machine (`bldr_handshake` $\rightarrow$ `usbdl_send_da` $\rightarrow$ `usbdl_vfy_da` $\rightarrow$ `usbdl_jump_da`), alongside META mode testing paths (`METAMETA`, `ADVEMETA`) and partition verification logic (`sec.c`, `sec_auth.c`, `partition.c`).
-3. **Software-Only Unlock Feasibility Assessment:** The available empirical firmware evidence confirms that **no documented, supported, non-destructive software-only bootloader unlock route is currently functional** on factory firmware build C.50.
+3. **Software-Only Unlock Feasibility Assessment:** The available reference-image evidence demonstrates no documented, supported, non-destructive software-only bootloader unlock route. It does not prove the exact installed CPH1859 C.50 preloader behavior or rule out an undiscovered vulnerability.
    - The official In-Depth Test (DeepTesting) server infrastructure is permanently decommissioned.
    - Little Kernel enforces hardware eFUSE serial matching and RSA-2048 signature verification against an embedded OEM public key, triggering an immediate hardware Watchdog reset (`mtk_arch_reset`, writing `0x1971` to `0x10007000`) upon token absence.
-   - Preloader intercepts USB connections and mediates BootROM access; software crash packets (`kamakiri`) are rejected on 2020 MT6771 builds, requiring physical motherboard testpoint grounding to force BootROM mode.
+   - Preloader intercepts USB connections and contains security-policy and emergency BootROM-reset paths. Software crash-payload rejection on the exact physical CPH1859 was not live-tested.
 
 ---
 
@@ -106,7 +108,7 @@ stateDiagram-v2
    - **Confirmed Behavior:** Prepares DRAM buffer pools for partition operations (`g_dram_buf start addr`, `g_dram_buf->msdc_gpd_pool`, `g_dram_buf->msdc_bd_pool`). Receives the external Download Agent binary payload streamed over USB. If the received DA is corrupted, executes `usbdl_send_da: clean invalid da`.
 3. **Download Agent Verification (`usbdl_vfy_da`):**
    - **File Offset:** String reference at `0x032924` (`usbdl_vfy_da:disabled`).
-   - **Confirmed Behavior vs Interpretation:** In standard MediaTek BSP code, `usbdl_vfy_da` validates the digital signature of the incoming Download Agent against vendor keys. The presence of string `usbdl_vfy_da:disabled` indicates that signature checking at this specific stage was disabled in the firmware configuration, BUT runtime execution remains constrained by hardware SLA (Serial Link Authentication) enforced in `sec_auth.c` and `sboot_state.c`.
+   - **Confirmed Behavior vs Interpretation:** The string `usbdl_vfy_da:disabled` indicates that one DA-container verification stage is disabled or configured out. Secure-chip and authentication-policy code is also present, but the full indirect runtime path is not reconstructed; the string alone cannot establish the final host authorization decision.
 4. **Download Agent Execution (`usbdl_jump_da`):**
    - **File Offset:** String reference at `0x032A0A` (`%s usbdl_jump_da: %x`).
    - **Confirmed Behavior:** Flushes CPU caches, sets up execution registers, and transfers control to the Download Agent entry point in DRAM.
@@ -118,7 +120,7 @@ stateDiagram-v2
 
 1. **Secure Boot Evaluation (`sboot_state.c`):**
    - Evaluates on-chip eFUSE registers. Distinguishes `S-CHIP` (secure hardware) from `NS-CHIP` (non-secure hardware).
-   - On retail CPH1859 units, `sbc_en = 1` is permanently active.
+   - The reference contains `sbc_en`/`S-CHIP` policy branches. The physical CPH1859 fuse state is not observable under the read-only scope.
 2. **Security Configuration Validation (`sec.c`):**
    - Reads partition `seccfg` (`0x038DF4`). Validates header magic `1A52A367CB12C458` (`0x038DBF`).
    - Parses device lock state: `[SEC_POLICY] lock_state = 0x%x` (`0x038F97`).
@@ -139,7 +141,7 @@ Static disassembly of `lk.img` across C.49 and C.50 confirms the Fastboot access
 1. **Execution Point:** `fastboot_init()` at RAM `0x60030018` calls `verify_unlock_token()` at RAM `0x6002EB00`.
 2. **Storage Coordinates:** `read_reserve4()` (`0x6002C794`) reads 8 sectors (4,096 bytes) at relative sector `0x16` added to base sector `0x7800`, yielding **sector `0x7816`** (`0x00F02C00` bytes into partition `reserve4`).
 3. **Serial Number Comparison:** Compares 16 bytes of SoC eFUSE serial number against token buffer at `sp + 0x688`. On mismatch, logs `"the serial is not match\n"` (`0x600802F8`) and returns `-1`.
-4. **Signature Verification:** Verifies 256-byte RSA-2048 PKCS#1 v1.5 signature over the token payload using SHA-256 against an OEM public key modulus embedded in `.rodata` at RAM `0x6007EE48` (file offset `0x7F048`).
+4. **Signature Verification:** Verifies a 256-byte RSA-2048 RSASSA-PSS/SHA-256 signature with MGF1-SHA-256, salt length 32, and trailer `0xBC` against an OEM public key modulus embedded in `.rodata` at RAM `0x6007EE48` (file offset `0x7F048`).
 5. **Watchdog Abort:** If token verification returns non-zero, `fastboot_init()` outputs `"fastboot_unlock_verify fail\n\n"` (`0x600809FC`) and immediately calls `0x6000CD30` (`[WDT] mtk_arch_reset`), writing magic `0x1971` to Watchdog Timer registers `0x10007000` / `0x10007008`, forcing an immediate hardware reboot into normal ColorOS.
 6. **Relocking Path Scope:** `clean_flash_unlock_data()` (`0x6002EACC`) zeroes the 4 KB token slot at sector `0x7816` of `reserve4`. It is called **exclusively from `cmd_flashing_lock()` at `0x60036920`** during intentional user relocking; it is never called on failed boot.
 
@@ -183,14 +185,14 @@ To preserve rigorous epistemic boundaries, the relationships between hardware mo
 
 ### 6.1 Feasibility Assessment
 Based on static analysis of C.49 and C.50 binaries, live device properties, and verified community research:
-- **`NO VIABLE SOFTWARE-ONLY UNLOCK ROUTE FOUND`**.
+- **`NO VIABLE SOFTWARE-ONLY UNLOCK ROUTE FOUND IN THE ANALYZED EVIDENCE`**.
 - The bootloader cannot be unlocked over standard software interfaces without an OEM-signed token matching the physical SoC serial number.
 
 ### 6.2 Precise Evidence Gaps
 To alter this conclusion non-invasively, the following specific evidence would be required:
 1. **Historical DeepTesting Client Binary:** Acquiring a clean copy of `com.coloros.deeptesting.apk` (v1.0.0 through v1.2.0) to analyze client-side token parsing, serialization, and any potential cryptographic verification flaws (e.g. hardcoded debug keys, weak signature validation, or bypass flags).
 2. **Historical Network Traffic Capture:** An authenticated PCAP of a successful 2019/2020 DeepTesting unlock handshake to analyze token structure, nonces, and metadata fields stored in the remaining ~3,824 bytes of `reserve4` sector `0x7816`.
-3. **Preloader USB Protocol Specification:** Formal documentation or leak of the internal MediaTek / Oppo Download Agent protocol for MT6771 to determine if an authenticated DA exists that can be executed without cloud-based SLA challenge-response.
+3. **Preloader USB Protocol Specification:** Formal documentation or a fuller static call-graph reconstruction of the internal MediaTek/Oppo Download Agent protocol for MT6771 to determine the exact authentication boundary.
 
 ---
 

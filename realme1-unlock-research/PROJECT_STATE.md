@@ -2,15 +2,15 @@
 
 ## Authoritative Progress Indicator
 
-- **Project Status:** ACTIVE RESEARCH / PHASE 7 BOOTLOADER AUTHORIZATION REVERSE ENGINEERING COMPLETE
-- **Current Phase:** Phase 7: Bootloader Authorization Reverse Engineering & Path Audit
-- **Current Task ID & Description:** P007: Assess security-relevant findings & candidate bypass hypotheses
-- **Overall Completion Estimate:** 100% of Phase 1 through Phase 7 research deliverables
-- **Last Completed Milestone:** Exhaustive reverse engineering of the bootloader authorization mechanism (`verify_unlock_token`), static inventory of 21 Fastboot commands, recovery ramdisk audit, and systematic evaluation of 8 candidate bypass hypotheses. Mathematically verified that `verify_unlock_token()` enforces RFC 8017 RSASSA-PSS SHA-256 with salt length 32 and trailer field `0xBC`, hashing strictly the 16-byte SoC eFUSE serial number. Produced `artifacts/authorization_protocol.md` (`ART-012`), `artifacts/alternative_unlock_paths.md` (`ART-013`), `artifacts/security_findings.md` (`ART-014`), and verification tool `scripts/analyze_authorization_protocol.py` (41/41 repository unit tests passing).
-- **Formal Project Outcome:** **`NO VIABLE SOFTWARE-ONLY UNLOCK ROUTE FOUND`** (live C.50 device enforces identical token verification gating; bootloader code is 100% identical between C.49 and C.50; RSASSA-PSS signature binds token directly to SoC eFUSE serial).
+- **Project Status:** ACTIVE RESEARCH / PHASE 9 STATIC PATH AUDIT COMPLETE
+- **Current Phase:** Phase 9: LK/PSS data flow and preloader reset/DA uncertainty audit
+- **Current Task ID & Description:** P009: Resolve LK/PSS data flow, preloader DA-call uncertainty, and emergency reset reachability
+- **Overall Completion Estimate:** 100% of the requested read-only audit deliverables; exact installed CPH1859 C.50 image provenance remains open
+- **Last Completed Milestone:** Traced the exact LK arguments to `0x600567C0`, separated the outer token-field SHA-256/RSA caller from the internal PSS verifier, rescanned preloader string anchors against executable code, traced direct watchdog-reset transfers, corrected string-offset/function-address confusion, and added `scripts/validate_remaining_paths.py`.
+- **Formal Project Outcome:** **`NO VIABLE SOFTWARE-ONLY UNLOCK ROUTE FOUND IN THE ANALYZED EVIDENCE`** (C.49 and the CPH1861-targeted C.50 reference enforce identical token gating; exact installed CPH1859 C.50 partition provenance remains open).
 - **Primary Technical Findings (Audited & Verified):**
   1. **Token Storage Coordinates:** `verify_unlock_token()` (`0x6002EB00`) calls `read_reserve4` (`0x6002C794`), which adds base sector `0x7800` to argument `0x16`, establishing the actual token location as **sector `0x7816`** (`0x00F02C00` bytes into partition `reserve4`). Read length is 8 sectors (4,096 bytes).
-  2. **Serial & Signature Checks:** Compares 16 bytes of SoC efuse serial via `memcmp` against the token buffer (`sp + 0x688`). Validates a 256-byte RSA-2048 PKCS#1 v1.5 signature with SHA-256 against an OEM public key modulus embedded in `.rodata` at RAM **`0x6007EE48`** (file offset `0x7F048`).
+  2. **Serial & Signature Checks:** Compares 16 bytes of SoC eFUSE serial against the token serial field (`sp + 0x688`), with a leading-zero fallback. Hashes the 16-byte token serial field and validates a 256-byte RSA-2048 RSASSA-PSS/SHA-256 signature with MGF1-SHA-256, salt length 32, and trailer `0xBC` against the OEM public modulus at RAM **`0x6007EE48`** (file offset `0x7F048`).
   3. **Fastboot Exit Mechanism:** On token verification failure, `fastboot_init()` calls `0x6000CD30` (`[WDT] mtk_arch_reset`), writing magic `0x1971` to watchdog timer registers (`0x10007000`/`0x10007008`) to force an immediate hard reboot into normal ColorOS.
   4. **Relocking Path Scope:** `clean_flash_unlock_data()` (`0x6002EACC`) is called **exclusively from `cmd_flashing_lock()` at `0x60036920`** during intentional user relocking. It zeroes the 4 KB token slot at sector `0x7816` of `reserve4`. It is never called on failed boot and has zero side effects on other partitions.
   5. **C.49 vs C.50 Little Kernel Diff:** Exactly 315 bytes differ across 753,984 bytes: Cluster 1 (27 bytes in `.rodata` build metadata string at `0x7EA23`), Cluster 2 (32 bytes in `cert2` payload SHA-256 digest at `0xB7F73`), and Cluster 3 (256 bytes in `cert2` RSASSA-PSS signature at `0xB8031`). All `.text`, constants, and data sections are 100% byte-identical.
@@ -18,11 +18,14 @@
   7. **Spelling Discrepancy Resolved:** The string `fastboot_unlock_verity` is completely absent from C.49 LK, C.50 LK, and Preloader. Both C.49 and C.50 contain `fastboot_unlock_verify fail\n\n` at `0x080BFC`. The observed string on the device screen was an optical/transcription artifact on the low-resolution LCD console.
   8. **Preloader Code Identity:** C.49 and C.50 Preloaders are 100% code-identical after normalizing the 2,048-byte `EMMC_BOOT` header.
   9. **CPH1861 Variant Safety Warning:** C.50 firmware is an `oppo6771_17065` codebase historically targeted for CPH1861. It must not be assumed safe to flash onto CPH1859, preserving the project's non-invasive read-only policy.
+  10. **Exact PSS input:** At `0x6002ed44`, LK passes a precomputed 32-byte `mHash` from SHA-256 over token bytes `+0x100..+0x10f`; `0x600567C0` performs PSS encoding checks and does not receive raw message bytes.
+  11. **Preloader call-graph correction:** `usbdl_*`, `bldr_handshake`, `S-CHIP`/`NS-CHIP`, and BROM offsets are diagnostic/source strings, not proven function entry points. Conservative direct/PC-relative references to them were not found; table/indirect dispatch remains unknown.
+  12. **Emergency reset:** Executable watchdog routines at raw `0x2ae34`, `0x2ae44`, and `0x2aef0` have direct internal callers/transfers. The BROM strings do not establish a host-triggerable command path.
 - **Next Three Actions (Prioritized):**
-  1. Review bootloader authorization protocol findings in `artifacts/authorization_protocol.md` (ART-012), alternative paths in `artifacts/alternative_unlock_paths.md` (ART-013), and security findings in `artifacts/security_findings.md` (ART-014).
-  2. Source historical ColorOS 5.2/6.0 `com.coloros.deeptesting.apk` to investigate client-side token serialization schemas.
-  3. Maintain strictly non-invasive, read-only posture on the target device.
-- **Last Updated:** 2026-10-21T16:45:00+05:30
+  1. Acquire and authenticate exact CPH1859 C.50 LK/preloader images with independent partition provenance.
+  2. Use a loader-aware static-analysis tool to resolve preloader table/indirect DA and security dispatch; do not test the reset path on the phone.
+  3. If available, statically inspect the historical ColorOS 5.2/6.0 DeepTesting APK for token serialization; maintain the strictly read-only posture.
+- **Last Updated:** 2026-10-21T17:30:00+05:30
 - **Current Git Branch:** main
 - **Relevant Artifact Paths:**
   - `realme1-unlock-research/artifacts/authorization_protocol.md` (ART-012)

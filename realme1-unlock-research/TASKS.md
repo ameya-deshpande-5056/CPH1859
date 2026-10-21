@@ -29,6 +29,8 @@
 | **P005** | Establish authorization protocol & RSASSA-PSS cryptographic verification | **DONE** | R005 | Phase 7 |
 | **P006** | Map alternative unlock paths across Fastboot, Recovery, and Preloader | **DONE** | P005 | Phase 7 |
 | **P007** | Assess security-relevant findings & candidate bypass hypotheses | **DONE** | P006 | Phase 7 |
+| **P008** | Reconcile evidence, provenance, and preloader uncertainty | **DONE** | P007 | Phase 8 |
+| **P009** | Resolve LK/PSS data flow, preloader DA-call uncertainty, and emergency reset reachability | **DONE** | P008 | Phase 9 |
 
 ---
 
@@ -61,6 +63,24 @@
 - **Actions Performed:** Evaluated all 8 vectors; classified 6 as Refuted (mathematically sound or orthogonal), 2 as Confirmed Blocked in Software; demonstrated that no non-destructive software-only bypass exists on factory C.50 firmware; produced artifact `artifacts/security_findings.md` (`ART-014`).
 - **Evidence & Artifact References:** `artifacts/security_findings.md` (ART-014).
 - **Result & Confidence Level:** Complete, 100% confidence.
+
+---
+
+### P008: Reconcile Evidence, Provenance, and Preloader Uncertainty
+- **Status:** DONE
+- **Objective:** Reconcile stale Phase-2 “C.50 unavailable” records with the accessible C.50 reference images, independently recalculate hashes, correct the token-message input description, distinguish the LK FRP flag from Android property evidence, and calibrate preloader/recovery conclusions.
+- **Actions Performed:** Recalculated four LK/preloader hashes; reran the differential validator and full 41-test suite; independently disassembled the Fastboot gate, `reserve4` offset math, token serial copy/hash path, PSS verifier, FRP caller, and relocking caller; recalculated the accessible recovery binary hash; added `artifacts/research_evidence_audit.md` and `artifacts/preloader_architecture_map.md`; corrected stale PKCS#1 v1.5, exact-device, recovery-hash, and categorical preloader claims.
+- **Result & Confidence Level:** Complete for the accessible reference images; exact installed CPH1859 C.50 image provenance and complete indirect preloader semantics remain open.
+
+---
+
+### P009: Resolve LK/PSS Data Flow, Preloader DA-Call Uncertainty, and Emergency Reset Reachability
+- **Status:** DONE (static scope)
+- **Objective:** Validate the exact arguments to LK `0x600567c0`; distinguish the outer token-field hash/RSA caller from the internal RSASSA-PSS verifier; audit the preloader DA/security string anchors and direct executable reset edges; and determine whether the emergency BROM-reset path is proven host-triggerable.
+- **Required Inputs:** Pinned C.49 LK/preloader binaries, normalized C.50 reference metadata, existing hashes and offsets.
+- **Actions Performed:** Traced `0x6002ed00–0x6002ed44` and the full PSS sequence at `0x600567c0`; confirmed `mHash` is a precomputed 32-byte SHA-256 digest over token bytes `+0x100..+0x10f`; added `scripts/validate_remaining_paths.py`; rescanned preloader executable offsets for conservative string references; traced direct watchdog transfers at raw `0x2ae34`, `0x2ae44`, and `0x2aef0`; corrected the earlier use of diagnostic string offsets as function entry points; classified table/indirect DA edges and host reachability as unknown.
+- **Evidence & Artifact References:** `artifacts/research_evidence_audit.md`, `artifacts/preloader_architecture_map.md`, `scripts/validate_remaining_paths.py`.
+- **Result & Confidence Level:** LK data flow and PSS sequence confirmed for the pinned C.49/C.50-identical code; preloader DA call graph is not fully resolved from the available stripped binary; emergency path is internally supported but host-triggerability is not demonstrated.
 
 ---
 

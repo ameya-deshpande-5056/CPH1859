@@ -4,14 +4,14 @@
 
 **Research Objective:** Investigate whether the Realme 1 (CPH1859), running ColorOS based on Android 9, firmware build `CPH1859EX_11_C.50`, can have its bootloader unlocked through a software-only method without opening the device, shorting motherboard testpoints, or using proprietary servicing tools.
 
-**Formal Outcome:** **`NO VIABLE SOFTWARE-ONLY UNLOCK ROUTE FOUND`**  
-*(Live C.50 firmware reverse engineering complete; token verification access controls independently verified).*
+**Formal Outcome:** **`NO VIABLE SOFTWARE-ONLY UNLOCK ROUTE FOUND IN THE ANALYZED EVIDENCE`**
+*(The phone is CPH1859 C.50, while the available C.50 LK/preloader references are documented as CPH1861-targeted; exact installed-image provenance is not established.)*
 
 In strict accordance with empirical research standards, this report updates and calibrates all previous claims. Unsupported certainty (such as declaring bootloader unlock "mathematically or technically impossible") has been removed. Instead, the evidence demonstrates that:
-1. Static reverse engineering of the boot-chain binaries (`lk.img`, `preloader_emmc.img`) is **complete**: C.50 Little Kernel and Preloader are **100% executable-code identical** to C.49, differing only in 27 bytes of build timestamp string in `.rodata` and the corresponding MediaTek container signatures (`cert2`).
-2. The observed error `the serial is not match / fastboot_unlock_verify fail` is **directly observed** in disassembly at `0x6002EB00` / `0x60030018` to enforce hardware efuse serial matching and RSA-2048 signature verification against an embedded OEM public key, rebooting the SoC via watchdog timer on failure.
+1. Static reverse engineering of the supplied reference images found the C.50 Little Kernel and normalized Preloader executable regions **byte-identical** to C.49, with LK differences limited to 27 build-metadata bytes plus certificate digest/signature bytes. This is not proof about the exact installed CPH1859 partitions.
+2. The observed error `the serial is not match / fastboot_unlock_verify fail` is directly supported by C.49 disassembly at `0x6002EB00` / `0x60030018`. The C.50 reference has the identical gate. It compares the token serial field with the eFUSE-derived serial and verifies an RSA-2048 RSASSA-PSS signature against an embedded OEM public key, then reboots via watchdog on failure.
 3. The official vendor-supported unlock pathway (In-Depth Test APK) is **source-reported** to be decommissioned on vendor servers and incompatible with build C.50.
-4. MediaTek BootROM exploitation ([CVE-2020-0069](https://github.com/bkerler/mtkclient)) is **independently verified** on the MT6771 chipset, but accessing the BootROM over USB without physical hardware testpoint grounding is blocked by preloader security mediation.
+4. MediaTek BootROM exploitation ([CVE-2020-0069](https://github.com/bkerler/mtkclient)) is source-supported for the chipset, but no exact-device software-only entry was demonstrated. Preloader mediation, secure-state policy, and emergency reset paths remain partly unresolved statically.
 
 The target phone remains in a **100% unmodified factory state** (`ro.boot.flash.locked = 1`, `ro.boot.verifiedbootstate = green`).
 
@@ -53,8 +53,8 @@ All claims in this research have been subjected to an evidence audit using a fiv
 ### Local File Inventory
 A search was conducted across the workspace and host filesystems:
 - Target files: `*.ozip`, `*.ofp`, `*.bin`, `*.img`, `*CPH1859*`.
-- Result: **Zero exact CPH1859 C.50 firmware images exist locally**.
-- Found files: Only generic tools in `/home/ameya/mtkclient` (including `preloader_oppo6771_18611.bin`, a 1,072-byte DA header snippet, not a full executable).
+- Result: No exact, model-authenticated CPH1859 C.50 package was found in the project directory.
+- Found files: C.49 references in `/home/ameya/Realme1/C49_extracted/` and C.50 reference LK/preloader images in `/home/ameya/Realme1/C50_research/c50_static/`; project provenance identifies the C.50 references as CPH1861-targeted.
 
 ### Live Device Partition Node Probing
 Partition block nodes were examined on the connected Realme 1 over ADB:
@@ -72,13 +72,13 @@ adb shell "head -c 16 /dev/block/by-name/lk"
 # Result: head: /dev/block/by-name/lk: Permission denied
 ```
 
-### Specifically Blocked Analyses (C.50) & C.49 Baseline Established
-While C.50 partition images remain unextractable from the live device without elevated privileges:
+### Exact-device provenance limitation & reference analysis
+The installed CPH1859 C.50 partition nodes remain inaccessible to unprivileged ADB, but reference C.50 LK/preloader images are available and reproducibly analyzed:
 1. **C.49 Baseline Fully Characterized & Audited:** Extracted C.49 binaries (`lk.img`, `preloader_oppo6771_17065.bin`) were analyzed and audited in `artifacts/c49_bootloader_format_analysis.md` (ART-007). The container layout was proven to be MediaTek `union prt_img_hdr` (512-byte header, 749,772-byte payload, followed by two 512-byte certificate containers `cert1` and `cert2`), running at base DRAM address `0x60000000` with ARMv7/Thumb-2 state switching.
 2. **Fastboot Gatekeeper & Hardware WDT Reset:** In C.49 LK, `fastboot_init()` at `0x60030018` calls `0x6002eb00`, which reads the efuse board serial and validates an OEM RSA-2048/SHA-256 token read from sector `0x7816` (`0x00f02c00` bytes) of partition `reserve4`. On failure, it outputs `fastboot_unlock_verify fail\n\n` and calls `0x6000cd30` (`mtk_arch_reset`), writing magic `0x1971` to the hardware watchdog timer (`0x10007000`/`0x10007008`) to force an immediate reboot to normal ColorOS.
 3. **Relocking Path & `clean_flash_unlock_data` Scope:** `clean_flash_unlock_data` (`0x6002eacc`) is called strictly during relocking (`cmd_flashing_lock` at `0x60036920`), zeroing the 4 KB token slot at sector `0x7816` of `reserve4`. It is never called on failed boot.
 4. **Unlock Logic & FRP Flag Offset Traced:** Handlers for `flashing get_unlock_ability` (`0x60036518`) and `flashing unlock` (`0x60036648`) query `0x60036390`, which reads the 4-byte flag from `partition_size - 4` of the `"frp"` partition.
-5. **C.49 vs C.50 Comparative Diffing Blocked:** Sourcing the exact C.50 `lk.img` remains required to resolve whether the live on-screen message `fastboot_unlock_verity fail` (spelled with a `t`) represents a string rename or a separate AVB verity check. Public C.50 downloads are no longer accessible on official portals post-EOL.
+5. **Reference differential result:** The supplied C.50 reference LK differs from C.49 in exactly 315 bytes; the token verifier and Fastboot initializer are byte-identical. The supplied normalized C.50 reference preloader differs in 569 bytes confined by the validator to metadata/signature regions. This resolves the reference-image string question, but does not prove that the installed CPH1859 image is identical.
 
 ---
 
@@ -92,15 +92,15 @@ Five potential routes were systematically evaluated against explicit prerequisit
 |---|---|---|---|---|
 | **Supported OEM Authorization** | In-Depth Test (DeepTesting) Client-Server Handshake | Live backend signing server issuing RSA-2048 token matching hardware serial; client APK compatibility on C.50 | Token verifier `0x6002eb00` verifies RSA-2048/SHA-256 token at sector `0x7816` of `reserve4`; device properties show `ro.oem_unlock_supported = 1` | **BLOCKED:** Servers permanently offline post-2020 EOL; private key undisclosed; C.50 community-reported incompatible with legacy APK |
 | **Ordinary Android / ADB Access** | Partition Write via ADB shell | Elevated local privilege (root) or permissive block node permissions to write to `reserve4`, `lk`, or `frp` | Block nodes `/dev/block/by-name/{lk,reserve4,frp}` are strictly mode `0600 root:root`; ADB runs as UID 2000 (`shell`); SELinux `Enforcing` | **BLOCKED:** Unprivileged ADB cannot read or write raw partitions (`Permission denied`); zero verified LPE exploits on Android 9 Sept 2020 patch |
-| **Fastboot Command Access** | Standard Fastboot Protocol (`flashing unlock`) | Device remains in Fastboot mode over USB, accepting command packets | `fastboot_init()` calls `verify_unlock_token()`, fails due to absent token, prints `fastboot_unlock_verify fail` (or `verity`), and triggers hardware watchdog reset | **BLOCKED:** Device immediately aborts Fastboot and reboots to normal ColorOS before commands can be processed |
+| **Fastboot Command Access** | Standard Fastboot Protocol (`flashing unlock`) | Device remains in Fastboot mode over USB, accepting command packets | `fastboot_init()` calls `verify_unlock_token()`, fails due to absent/invalid token in the analyzed path, prints `fastboot_unlock_verify fail`, and triggers hardware watchdog reset | **BLOCKED in analyzed images:** command registration is reached only after successful verification |
 | **Demonstrated Software Vulnerability** | In-Memory Patch / Memory Corruption in LK | Working unauthenticated software exploit bypassing memory protections in ColorOS kernel or Little Kernel | Static analysis confirms patching `0x6002eb00` to return `0` (`movs r0, #0; bx lr`) would bypass check | **BLOCKED:** Modifying LK on flash is rejected by preloader AVB; no remote/local software-only memory exploit demonstrated on C.50 |
-| **BootROM / Preloader-Level Access** | MediaTek BootROM USB Control Transfer Exploit (CVE-2020-0069) | USB device connection in true BootROM mode (`0e8d:0003`) without preloader mediation | SoC confirmed MT6771 (Helio P60); silicon contains BootROM USB vulnerability | **BLOCKED (Software-Only):** Preloader mediates USB; software crash packets patched in 2020 builds (`0x1d18`/`0x1d1a` RX errors); BootROM requires hardware testpoint grounding |
+| **BootROM / Preloader-Level Access** | MediaTek BootROM USB Control Transfer Exploit (CVE-2020-0069) | USB device connection in true BootROM mode (`0e8d:0003`) without preloader mediation | SoC is MT6771; reference preloader contains USB/DA security and emergency BROM-reset paths | **NOT DEMONSTRATED:** exact-device crash-payload behavior and host reachability of the reset path remain unknown |
 
 ### Candidate 1: Little Kernel Fastboot Verification Bypass
 - **Target Binary:** `lk.img` / `lk2.img` (ColorOS build C.50).
 - **Vulnerability Mechanics:** The bootloader contains a conditional gate that prevents Fastboot initialization when a serial mismatch occurs. Open-source patch engines ([`R0rt1z2/lkpatcher`](https://github.com/R0rt1z2/lkpatcher)) show that modifying the verification function to return Thumb-2 `00207047` (`movs r0, #0; bx lr`) bypasses this check.
 - **Prerequisites & Access:** Modifying `lk.img` requires write access to `/dev/block/mmcblk0p33`. On a locked bootloader, flashing modified partitions is rejected by Android Verified Boot (AVB) in the preloader.
-- **Reproducibility on C.50:** The verification failure is 100% reproducible; bypassing it via software write is blocked.
+- **Reproducibility:** The failure is recorded on the phone; the reference LK reproduces the gate. Bypassing it via a software write was not demonstrated and would require prohibited partition modification.
 - **Unlock Efficacy:** High (would allow standard `fastboot flashing unlock`).
 - **Safety Risk:** Critical brick risk if patched LK fails signature verification during preloader handoff.
 
@@ -116,7 +116,7 @@ Five potential routes were systematically evaluated against explicit prerequisit
 - **Target Binary:** MediaTek MT6771 On-Chip BootROM (Silicon ROM).
 - **Vulnerability Mechanics:** Buffer overflow during USB control transfers in BootROM mode (`0e8d:0003`) allows code execution to disable SLA/DAA authentication and patch the `seccfg` partition directly.
 - **Prerequisites & Access:** Device must be connected in BootROM mode, NOT Preloader mode (`0e8d:2000`).
-- **Reproducibility on C.50:** The silicon is vulnerable, but forcing BootROM mode over software without testpoints is blocked on C.50.
+- **Reproducibility:** The chipset-level vulnerability is source-supported; forcing BootROM mode over software on this device was not demonstrated.
 - **Unlock Efficacy:** High (direct `seccfg unlock` via `mtkclient`).
 - **Safety Risk:** Low-to-medium; risk of metadata corruption if partition tables mismatch.
 
@@ -124,7 +124,7 @@ Five potential routes were systematically evaluated against explicit prerequisit
 - **Target Binary:** `preloader_cph1859.bin`.
 - **Vulnerability Mechanics:** Sending malformed DA packets to the Preloader COM port to trigger an unhandled exception/watchdog reset into BootROM mode.
 - **Prerequisites & Access:** Connecting over USB in Preloader mode.
-- **Reproducibility on C.50:** Source-reported to be patched in 2020 MT6771 firmwares (`0x1d18`/`0x1d1a` RX errors).
+- **Reproducibility:** Source-reported for some 2020 MT6771 firmwares; not live-tested on this target.
 - **Unlock Efficacy:** Moderate (stepping stone to Candidate 3).
 - **Safety Risk:** Preloader hang if payload causes unexpected state.
 
@@ -134,11 +134,11 @@ Five potential routes were systematically evaluated against explicit prerequisit
 
 ### Summary of Technical Blockers
 1. **No Software Route to Fastboot:** Little Kernel enforces a hardware serial check and aborts to ColorOS upon failure.
-2. **No Software Route to BootROM:** The preloader intercepts USB connections and rejects known crash payloads, requiring physical motherboard testpoint grounding.
+2. **No demonstrated software route to BootROM:** The preloader contains USB/DA security and emergency BROM-reset paths, but exact reachability and crash-payload behavior on the target were not live-tested.
 3. **No Local Privilege Escalation:** Production Android 9 with the September 2020 patch level enforces strict DAC and SELinux separation on raw block devices.
-4. **No Offline Firmware Binary:** Static reverse engineering of the exact C.50 binary is blocked by the absence of local ROM images.
+4. **Exact-image uncertainty:** The CPH1861-targeted C.50 references are not a substitute for a model-authenticated CPH1859 C.50 package.
 
 ### Recommended Next Steps for the User
 - **To Maintain the Software-Only Constraint:** Conclude the investigation at this boundary. Do not flash random partition images or execute unverified exploit payloads that risk bricking the device.
-- **To Unblock Static Reverse Engineering:** Acquire a verified copy of the `CPH1859EX_11_C.50.ozip` package, decrypt it with `bkerler/oppo_ozip_decrypt`, and perform Ghidra/radare2 disassembly on `lk.img` offline.
+- **To reduce the remaining uncertainty:** Acquire a model-authenticated copy of the `CPH1859EX_11_C.50.ozip` package, decrypt it with `bkerler/oppo_ozip_decrypt`, and compare its `lk`, preloader, and recovery images against the current references.
 - **If Hardware Constraints are Relaxed in the Future:** The device casing can be opened to ground the DAT0/CLK testpoint, forcing true BootROM mode for `mtkclient` flashing.

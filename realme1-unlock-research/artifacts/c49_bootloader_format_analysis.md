@@ -260,8 +260,8 @@ flowchart TD
   - Fallback check: If the primary 16-byte check fails, inspects `[buffer + 0x100]` for ASCII `'0'` (`0x30`) and compares 15 bytes against `sp + 0x689`.
   - Mismatch branch (`0x6002ed9e`): If neither matches, outputs `"the serial is not match\n"` (`0x600802f8`) and returns `-1`.
 - **Cryptographic Signature Verification:**
-  - Hash algorithm: SHA-256 (`0x600540a0` / `0x60054960`, digest size 32 bytes / `0x20`).
-  - Signature algorithm: RSA-2048 PKCS#1 v1.5 (`0x600567c0`, key modulus 2048 bits / `0x800`, signature size 256 bytes / `0x100`).
+  - Hash algorithm: SHA-256 (`0x60058250`, digest size 32 bytes / `0x20`). The verifier hashes the 16-byte token serial field after the serial comparison; in the ordinary case this equals the eFUSE-derived serial text.
+  - Signature algorithm: RSA-2048 RSASSA-PSS with MGF1-SHA-256, salt length 32, and trailer `0xBC` (`0x600567c0`, key modulus 2048 bits / `0x800`, signature size 256 bytes / `0x100`). It is not PKCS#1 v1.5.
   - **Public Key Modulus Location:** Embedded directly in `.rodata` of `lk.img` at RAM **`0x6007ee48`** (file offset `0x7f048`). The address is referenced via pointer `0x600b6b18` in `.data`, loaded at `0x6002ecde: ldr r1, [pc, #0xd4]`.
   - Pass branch (`0x6002ed5a`): Outputs `"oppo Verify pass\n"` (`0x6008031c`) and returns `0`.
   - Fail branch (`0x6002ed50`): Outputs `"oppo Verify fail\n"` (`0x60080330`), sets return code `-3` (`0xfffffffd`), and exits.
@@ -337,22 +337,12 @@ flowchart TD
 3. **Fastboot Lockout Mechanism:** Fastboot mode is not blocked by a missing partition; it is blocked by an explicit hardware efuse serial validation function (`0x6002eb00`) in `fastboot_init()`.
 4. **OEM Unlock Flag Location:** The `unlock_ability` flag is read directly from offset `partition_size - 4` of the `frp` partition.
 
-### 6.2 Questions That Cannot Be Answered From C.49 Firmware Alone
-1. **The C.50 Error String Discrepancy (`verify` vs `verity`):**
-   - Direct observation on live device running C.50: When `adb reboot bootloader` is issued, the screen displays `fastboot_unlock_verity fail` (spelled with a `t`).
-   - Direct observation in C.49 `lk.img`: The string is explicitly `fastboot_unlock_verify fail` (with an `f`, file `0x80bfc`).
-   - *Open question:* Did Oppo/MediaTek apply a simple spelling correction in C.50, or does C.50 contain an additional Android Verified Boot (AVB) dm-verity routine that triggers before or during fastboot initialization?
-   - *Unresolvable without:* Disassembling decrypted C.50 `lk.img`.
-2. **C.50 Cryptographic Token Key & Algorithm Stability:**
-   - In C.49, token verification in `0x6002eb00` uses RSA-2048 with SHA-256 against an OEM public key modulus, checking 16 bytes of serial against sector `0x16` of `reserve4`.
-   - *Open question:* Did C.50 rotate the RSA signing key modulus, change the token payload structure, or move the token offset in `reserve4`?
-   - *Unresolvable without:* Extracting the public key structure and token parsing logic from C.50 `lk.img`.
-3. **C.50 Preloader Handshake & BROM Transition Vector:**
-   - The C.49 preloader contains strings referring to `Force brom download recovery success` and `Preloader going reset and trigger BROM usb auto detectiton!!`.
-   - *Open question:* Does the C.50 preloader maintain these recovery routines, or were watchdog reset and USB download mode entry points completely excised or hardened?
-   - *Unresolvable without:* Disassembling the C.50 `preloader.bin`.
-4. **Proprietary In-Depth Test Server Protocol:**
-   - While the on-device token structure (4 KB in `reserve4`, 16-byte serial, 256-byte signature) is established, the exact network protocol, endpoint parameters, and cryptographic challenge-response exchanged between `com.coloros.deeptesting` and the decommissioned Oppo server cannot be reconstructed from bootloader code alone.
+### 6.2 Questions That Remain Open
+1. **Exact installed-image provenance:**
+   - The accessible C.50 LK and preloader references match the recorded hashes and are code-identical to the C.49 references in the analyzed regions.
+   - Project provenance identifies the C.50 package as CPH1861-targeted. It must not be called the exact installed CPH1859 firmware without an independently model-authenticated package.
+2. **Proprietary In-Depth Test Server Protocol:**
+   - While the on-device token structure (4 KB in `reserve4`, 16-byte token serial, 256-byte signature) is established, the exact network protocol, endpoint parameters, and cryptographic challenge-response exchanged with the historical Oppo service cannot be reconstructed from bootloader code alone.
 
 ### 6.3 Hardware Project Compatibility: CPH1859 vs CPH1861 vs Project 17065
 - **Common Software Project Architecture:** `Projectconfig.xml` establishes that the underlying BSP project is `oppo6771_17065`, serving as the `Common_software_project` across variants `17061`, `17065`, `17066`, `27065`, and `27066`.

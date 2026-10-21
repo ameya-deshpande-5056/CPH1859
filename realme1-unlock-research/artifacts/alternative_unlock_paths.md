@@ -16,8 +16,8 @@ To determine whether an alternative, non-destructive, software-only route to boo
 **Key Findings:**
 1. **Fastboot Command Dispatch:** Fastboot implements 21 command handlers. All 21 handlers are registered strictly *after* `verify_unlock_token()` returns 0. The legacy command `fastboot oem unlock` is completely absent from the binary.
 2. **Unlock Execution Handler (`cmd_flashing_unlock`):** Even if Fastboot execution were reached, `flashing unlock` enforces a strict secondary check on the `frp` partition flag (`unlock_allowed_flag`) and requires physical Volume Up confirmation before modifying `seccfg` and wiping `userdata`/`keystore`.
-3. **Stock Recovery Isolation:** Disassembly and string searching of `sbin/recovery` extracted from `recovery.img` ramdisk confirm that stock recovery contains **zero bootloader-unlock, partition-dump, or token-writing logic**. It contains no references to `reserve4`, `seccfg`, or `fastboot`.
-4. **Preloader USB Protocol Boundaries:** Preloader CDC ACM virtual COM port (`0e8d:2000`) mediates all host communications. While DA container signature verification contains debug string `usbdl_vfy_da:disabled`, runtime execution of Download Agents is strictly gated by hardware Serial Link Authentication (SLA) enforced by `sec_auth.c` and `sboot_state.c`.
+3. **Stock Recovery Isolation:** Disassembly and string searching of `sbin/recovery` extracted from the accessible `recovery.img` show no direct references to `reserve4`, `seccfg`, or `fastboot`. This is evidence against those direct paths, not proof that every indirect helper or external recovery script lacks such behavior.
+4. **Preloader USB Protocol Boundaries:** The reference preloader contains a CDC ACM/Download-Agent state machine and secure-chip/certificate-policy paths. The string `usbdl_vfy_da:disabled` means one software verification stage is disabled or configured out; it does not by itself prove that the complete runtime path is unauthenticated or authenticated. The full indirect call graph remains a bounded uncertainty.
 5. **Alternative Debug / Engineering Commands:** Engineering commands present in Little Kernel (`oem usb2jtag`, `oem scp_*`, `oem ultraflash:`) provide peripheral diagnostic telemetry but contain no memory write or partition flashing bypasses.
 
 ---
@@ -42,7 +42,7 @@ In Little Kernel, `fastboot_init()` registers command handlers via `fastboot_reg
 | `boot` | `0x600302BC` | `0x60035BF8` | Boots kernel directly from download buffer | **NO** (Gated by token) |
 | `flashing unlock` | `0x600302CC` | `0x60036648` | Initiates interactive bootloader unlock flow | **NO** (Gated by token) |
 | `flashing lock` | `0x600302DC` | `0x60036920` | Relocks bootloader and zeroes token slot | **NO** (Gated by token) |
-| `flashing get_unlock_ability`| `0x600302EC` | `0x60036518` | Queries Developer Options OEM unlock permission | **NO** (Gated by token) |
+| `flashing get_unlock_ability`| `0x600302EC` | `0x60036518` | Queries a persistent FRP flag used by unlock flow | **NO** (Gated by token) |
 | `oem scp_status` | `0x600302FC` | `0x60035CB0` | Queries System Co-Processor (SCP) status | **NO** (Gated by token) |
 | `oem scp_log_thru_ap_uart` | `0x6003030C` | `0x60035CD8` | Reroutes SCP debugging logs to AP UART TX | **NO** (Gated by token) |
 | `oem scp_scpctl` | `0x6003031C` | `0x60035D08` | Issues hardware control command to SCP core | **NO** (Gated by token) |
@@ -55,7 +55,7 @@ In Little Kernel, `fastboot_init()` registers command handlers via `fastboot_reg
 
 #### `cmd_flashing_unlock` (`0x60036648`):
 1. **Entry Check:** Calls `0x60036390` (`get_unlock_ability`).
-   - Reads 4 bytes from offset `partition_size - 4` of partition `"frp"`.
+   - Reads 4 bytes from offset `partition_size - 4` of partition `"frp"`; LK evidence does not prove that this is identical to Android's `sys.oem_unlock_allowed` property.
    - If flag `unlock_allowed == 0`: immediately aborts, logging:
      `"\nUnlock operation is not allowed\n"` (`0x60083982`) and sending Fastboot `FAIL`.
 2. **User Confirmation Prompt:**
@@ -81,7 +81,7 @@ In Little Kernel, `fastboot_init()` registers command handlers via `fastboot_reg
 
 ## 2. Stock Recovery Subsystem Analysis (`recovery.img`)
 
-The recovery ramdisk was decompressed from `~/Realme1/C49_extracted/recovery.img` (gzip CPIO, 61,841,152 bytes uncompressed). Static inspection of `sbin/recovery` (1,266,160 bytes, SHA-256: `a91176bc06a323382fb9d2a6a117b3cb34164b49463994356ea8c82305307525`) and helper scripts establishes:
+The recovery ramdisk was decompressed from `~/Realme1/C49_extracted/recovery.img` (gzip CPIO, 61,841,152 bytes uncompressed). Static inspection of `sbin/recovery` (1,266,160 bytes, SHA-256: `05cfcf8ffbb59abcbd642a950989cc4d112d1985ad1a4c9eab642ce4e67bdb34`) and helper scripts establishes:
 
 ### 2.1 Supported Recovery Operations
 Stock recovery implements standard Android Recovery commands supplied via the `misc` partition BCB (`/cache/recovery/command`):
@@ -93,7 +93,7 @@ Stock recovery implements standard Android Recovery commands supplied via the `m
 ### 2.2 Security & Partition Boundaries
 - **No Fastboot Daemon:** `sbin/recovery` contains no Fastboot server or USB communication endpoints for flashing arbitrary partitions.
 - **OTA Verification:** Sideloaded or local update packages (`.ozip` / `.zip`) are strictly verified against compiled-in OEM X.509 certificates (`res/keys`). Unsigned, modified, or cross-model packages are rejected prior to execution.
-- **Partition Isolation:** Neither `sbin/recovery` nor `sbin/oppo_update_script.sh` contains references to partitions `reserve4`, `seccfg`, or `frp`. Stock recovery has zero code capability to write unlock tokens or alter bootloader lock states.
+- **Partition Isolation:** The accessible `sbin/recovery` has no direct references to `reserve4`, `seccfg`, or `frp`. That negative string result does not prove the absence of indirect behavior in helpers or scripts not included in this narrow extraction.
 
 ---
 
@@ -123,12 +123,12 @@ stateDiagram-v2
 ```
 
 ### 3.2 Gating Logic & Authentication Boundaries
-1. **Hardware SLA Enforcement:**
-   - While string `usbdl_vfy_da:disabled` exists in `download.c` (indicating DA container signature checking was disabled in build configuration), `sec_auth.c` and `sboot_state.c` enforce hardware Serial Link Authentication.
-   - When eFUSE bit `sbc_en = 1` (`S-CHIP`), the Preloader requires a cryptographically signed challenge-response token generated with the vendor's private key before executing any Download Agent payload.
+1. **Security-policy evidence (not a complete proof of every runtime branch):**
+   - String `usbdl_vfy_da:disabled` is present, indicating that one DA-container verification stage is disabled or configured out. Other secure-chip and authentication-policy code is also present, but the complete indirect runtime path is not reconstructed here.
+   - If the physical device is in the `S-CHIP` state and the relevant policy branch is reached, authenticated DA execution is strongly supported; the physical fuse state and exact host-reachable path remain unknown.
 2. **Kamakiri / USB Crash Payload Resistance:**
    - Software-based Preloader crashing payloads (`kamakiri` / `crash da`) rely on integer overflows in earlier MediaTek USB control packet parsers.
-   - On MT6771 builds dated 2020 (`oppo6771_17065_USR_20200509` and later), packet bounds checks prevent buffer redirection, causing USB connection timeouts (`0x1d18`/`0x1d1a` error codes) rather than dropping into BootROM mode.
+   - Community reports associate 2020 MT6771 builds with rejected crash payloads and timeout codes (`0x1d18`/`0x1d1a`), but this was not live-tested on the exact CPH1859 and is not proven solely by the presence of the reference strings.
 
 ---
 
@@ -158,6 +158,7 @@ Static scanning for engineering strings and command handlers in `lk.img` reveale
 | **`fastboot oem unlock`** | Fastboot execution | Command existence | **ABSENT:** Command not registered in binary |
 | **Stock Recovery Sideload** | Boot into Recovery mode | X.509 signature verification against OEM keys | **BLOCKED:** Rejects modified/custom update packages |
 | **Recovery Partition Edit** | Recovery mode execution | Tooling & partition access | **BLOCKED:** Recovery binary contains no partition edit logic |
-| **Preloader USB Download** | USB connection during power-on | Hardware SLA challenge-response | **BLOCKED:** Enforces cloud-signed authentication token |
-| **Preloader Crash to BROM** | USB handshake packet injection | USB parser bounds checks | **BLOCKED:** Software crash payloads patched on 2020 builds |
+| **Preloader USB Download** | USB connection during power-on | DA/security policy and indirect authentication paths | **UNKNOWN/NOT DEMONSTRATED:** reference contains security-policy paths, but `usbdl_vfy_da:disabled` prevents a categorical claim from strings alone |
+| **Preloader Crash to BROM** | USB handshake packet injection | USB parser behavior and internal reset preconditions | **UNKNOWN ON THE EXACT DEVICE:** reference contains emergency BROM-reset paths; no live test was performed |
 | **Developer Options FRP Flag** | Booted Android OS | `frp` partition flag | **INSUFFICIENT:** Evaluated post-fastboot; does not bypass LK token gate |
+

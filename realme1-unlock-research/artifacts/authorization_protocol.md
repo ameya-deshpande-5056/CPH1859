@@ -15,7 +15,7 @@ Static disassembly and cryptographic tracing of `lk.img` across C.49 and C.50 es
 1. **Gating Function:** `fastboot_init()` (RAM `0x60030018`–`0x60030628`) unconditionally calls `verify_unlock_token()` (RAM `0x6002EB00`–`0x6002EDCC`) before initializing the USB fastboot interface or registering any fastboot commands.
 2. **Token Storage & Layout:** 4,096 bytes are read from partition `reserve4` at **sector `0x7816`** (`read_reserve4` adds base `0x7800` to argument `0x16`). The layout contains a 256-byte signature at offset `+0x000` and a 16-byte ASCII device serial number at offset `+0x100`.
 3. **Cryptographic Algorithm:** The verifier does NOT use PKCS#1 v1.5. Disassembly of `0x600567C0` proves mathematically that it enforces **RSASSA-PSS SHA-256** with MGF1(SHA-256), salt length 32 (`0x20`), and trailer field byte `0xBC`.
-4. **Digest Calculation:** The signature is verified against the 32-byte SHA-256 digest calculated strictly over the 16 bytes of the SoC serial number. No timestamp, nonce, or model string is included in the hash.
+4. **Digest Calculation:** The verifier copies the 16-byte token serial field into its hash input and computes SHA-256 over those 16 bytes. In the ordinary path this equals the 16-byte eFUSE-derived serial text; the leading-zero fallback accepts a distinct 16-byte encoding. No timestamp, nonce, or model string is included in the hash.
 5. **Public Key Material:** Verified using a hardcoded OEM 2048-bit RSA public key modulus at RAM `0x6007EE48` (file `0x7F048`), distinct from the MediaTek Secure Boot v2 eFUSE root key (`Key C1`).
 6. **Failure Action:** Any failure in serial matching or signature verification logs `fastboot_unlock_verify fail\n\n` and immediately invokes `[WDT] mtk_arch_reset(1)`, writing `0x1971` to register `0x10007000` to force an immediate hardware reboot.
 
@@ -133,7 +133,7 @@ When the serial matches, control transfers to `0x6002EC60`.
 0x6002ECFE:  ldr        r3, [sp, #0x18]   ; length = 16 (0x10)
 0x6002ED00:  mov        r0, ip
 0x6002ED02:  mov        r1, r3
-0x6002ED04:  bl         #0x60058250       ; sha256(data=serial, len=16, digest_out=sl)
+0x6002ED04:  bl         #0x60058250       ; sha256(data=token_serial_copy, len=16, digest_out=sl)
 ```
 Function `0x60058250` executes `sha256_init` (`0x60057FB4`, verified by initial constants `0x6A09E667`, `0xBB67AE85`, `0x3C6EF372`, `0xA54FF53A`), `sha256_update`, and `sha256_final`, producing a 32-byte hash.
 
@@ -242,10 +242,15 @@ graph TD
 2. The unlock token is read from partition `reserve4` at sector `0x7816` (4,096 bytes).
 3. The token format consists of a 256-byte signature at `+0x000` and a 16-byte ASCII serial at `+0x100`.
 4. The signature algorithm is mathematically verified to be RSASSA-PSS SHA-256 with salt length 32 and trailer byte `0xBC`.
-5. The hash verified by the signature is strictly the 32-byte SHA-256 of the 16-byte serial number.
+5. The hash verified by the signature is the 32-byte SHA-256 of the 16-byte token serial field; the normal encoding is the eFUSE-derived serial, with the documented leading-zero comparison fallback.
 6. The OEM verification public key is at RAM `0x6007EE48` and is distinct from the eFUSE SBC root key.
 7. `fastboot_init()` terminates with a Watchdog hard reboot on verification failure without registering any Fastboot commands.
 
 ### Hypotheses & Unknowns:
-1. **Private Key Location:** It is strongly inferred that the private key exists exclusively on Oppo/Realme offline signing servers, as no corresponding private key material exists in any device partition or firmware container.
+1. **Private Key Location:** Unknown. No corresponding private key material was found in the examined device artifacts, but that absence does not establish exclusive server custody or identify the historical service that controlled it.
 2. **Remaining Sector Bytes:** The remaining 3,824 bytes of sector `0x7816` (offsets `0x110`–`0xFFF`) are zeroed by `clean_flash_unlock_data()` during relocking, but are ignored during validation. Whether the historical DeepTesting server transmitted metadata in this region is unknown without an authenticated network capture.
+
+### Provenance limitation
+
+The C.50 reference LK and preloader used here match the recorded hashes but are documented as CPH1861-targeted. They support a reference-image comparison, not a direct claim that the installed CPH1859 C.50 partitions are byte-identical.
+

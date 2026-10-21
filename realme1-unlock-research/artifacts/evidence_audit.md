@@ -1,5 +1,7 @@
 # Epistemic Evidence Audit: Realme 1 (CPH1859) Unlock Claims
 
+> **Historical-artifact note:** This Phase-2 audit predates the accessible C.50 reference binaries and the Phase-8 reconciliation. Its classifications of C.50 binary availability and exact LK token structure are retained as historical context; see `research_evidence_audit.md` for the current audit.
+
 ## 1. Audit Methodology & Classification Taxonomy
 
 To ensure absolute technical rigor and prevent speculative assertions from masquerading as verified facts, every technical claim made in the initial investigation is audited against empirical data and primary sources using the following five-tier epistemic taxonomy:

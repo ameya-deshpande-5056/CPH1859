@@ -153,7 +153,7 @@ Certificate (SEQUENCE, 941 bytes):
   - **Stack Allocation:** `sub.w sp, sp, #0x1580`, `sub sp, #0xc` (5,516 bytes stack frame)
   - **Partition Read (`0x6002EC20`):** `movs r1, #0x16`, `movs r2, #8`, `bl #0x6002c794` (`read_reserve4`). Reads 8 sectors (4 KB) at sector `0x7800 + 0x16 = 0x7816` of `reserve4`.
   - **Serial Number Comparison (`0x6002EC30`):** `bl #0x60039e78` (`memcmp` 16 bytes). On mismatch, prints `"the serial is not match\n"` (`0x6002ED9E`) and sets `fp = -1`.
-  - **Token Cryptographic Verification (`0x6002ED44`):** `bl #0x600567c0` (RSA PKCS#1 v1.5 with SHA-256 against public key at RAM `0x6007EE48`). On failure, prints `"oppo Verify fail\n"` and `"Error Verify2 : %d\n"`. On success, prints `"oppo Verify pass\n"`.
+  - **Token Cryptographic Verification (`0x6002ED44`):** `bl #0x600567c0` (RSA-2048 RSASSA-PSS with SHA-256, MGF1-SHA-256, salt length 32, and trailer `0xBC`, against public key at RAM `0x6007EE48`). On failure, prints `"oppo Verify fail\n"` and `"Error Verify2 : %d\n"`. On success, prints `"oppo Verify pass\n"`.
   - **Return Epilogues:** `pop.w {r4, r5, r6, r7, r8, sb, sl, fp, pc}` at `0x6002EC1A` and `0x6002ED6C`.
   - **Literal Pool:** `0x6002EDAC` – `0x6002EDCB` (PC-relative offsets to error strings and public key pointer).
 - **C.49 vs C.50 Comparison:** Every single instruction, register, basic block, literal pool word, and branch target is **100% byte-identical**.
