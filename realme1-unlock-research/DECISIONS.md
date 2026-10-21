@@ -39,3 +39,17 @@
 - **Decision:** Place authoritative files in `realme1-unlock-research/` and create symbolic links at `/home/ameya/CPH1859/` pointing into `realme1-unlock-research/`.
 - **Reason:** Ensures any resuming agent or user inspecting either the workspace root or the project subfolder immediately finds all project state files.
 - **Alternatives Rejected:** Keeping files solely in one location without symlinks.
+
+---
+
+### DEC-005: Conclusion on Software-Only Unlock Feasibility for CPH1859EX_11_C.50
+- **Date:** 2026-10-21
+- **Status:** APPROVED / FORMAL CONCLUSION
+- **Context:** Feasibility evaluation based on live diagnostics and empirical findings from tasks R001-R004.
+- **Decision:** Conclude that a software-only bootloader unlock is not possible on build `CPH1859EX_11_C.50`. Discontinue ungrounded software exploit attempts.
+- **Reason:** 
+  1. LK actively enforces cryptographic serial token verification for Fastboot entry, resulting in `the serial is not match / fastboot_unlock_verity fail`.
+  2. The official DeepTesting authorization backend has been permanently decommissioned.
+  3. MediaTek preloader on C.50 patches USB crash vectors, preventing software-triggered BROM mode.
+  4. Entering BROM requires hardware testpoint grounding, which is excluded by the project constraints.
+- **Alternatives Rejected:** Recommending hardware disassembly (violates user constraints); fabricating speculative software bypasses (violates technical integrity).

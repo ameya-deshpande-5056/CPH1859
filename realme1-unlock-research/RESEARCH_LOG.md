@@ -31,3 +31,40 @@
   4. **Firmware C.50 Status:** Community reports on XDA indicate that even before server shutdown, C.50 builds broke In-Depth Test compatibility, and users were forced to downgrade to C.49 or earlier.
   5. **MediaTek BootROM (MTKClient):** MT6771 (Helio P60) is supported by MTKClient in BootROM mode (`0e8d:0003`). However, modern Oppo/Realme preloader firmware restricts the USB preloader handshake and blocks software-based preloader crashing (`kamakiri2` / `crash da`). Entering BootROM on these devices typically requires hardware testpoint grounding, which violates the software-only constraint of this project.
 - **Next Steps:** Proceed with detailed investigations for tasks R001 through R004, followed by building the diagnostic tool.
+
+---
+
+## 2026-10-21T10:22:00+05:30 — Diagnostic Tool Development & Test Verification
+
+- **Objective:** Build and test read-only Python CLI tool `realme1-unlock-research`.
+- **Execution & Test Results:**
+  - Implemented modular architecture in `src/realme1_unlock_research/`: `command_runner.py`, `redactor.py`, `collectors/`, `reporter.py`, `cli.py`.
+  - Created 13 unit tests in `tests/` covering identifier redaction, command safety enforcement, parser accuracy, and report generation.
+  - All 13 unit tests passed (`python3 -m unittest discover -s tests -v`).
+  - Executed live against target phone:
+    ```bash
+    python3 -m realme1_unlock_research.cli --format both --out artifacts/diagnostic_report
+    ```
+  - Confirmed 867 properties collected; zero serial number leaks; reports generated as `artifacts/diagnostic_report.md` and `artifacts/diagnostic_report.json`.
+- **Key Live Findings:**
+  - `ro.boot.flash.locked = 1`
+  - `sys.oem_unlock_allowed = 1`
+  - `ro.oem_unlock_supported = 1`
+  - `ro.boot.verifiedbootstate = green`
+  - `ro.boot.veritymode = enforcing`
+  - `ro.build.display.id = CPH1859EX_11_C.50`
+  - DeepTesting APK is NOT installed.
+  - Fastboot is not exposed over USB in normal mode.
+
+---
+
+## 2026-10-21T10:24:00+05:30 — Final Synthesis & Feasibility Conclusion
+
+- **Objective:** Consolidate empirical and research evidence into `REPORT.md` and make a final determination.
+- **Findings:**
+  - Software-only unlock cannot succeed because:
+    1. Little Kernel blocks Fastboot mode via cryptographic serial token validation (`fastboot_unlock_verity fail`).
+    2. Vendor unlock server infrastructure is permanently decommissioned.
+    3. MediaTek Preloader on C.50 blocks software-based BootROM entry (`0x1d18`/`0x1d1a` RX crash errors).
+    4. Forcing BROM requires hardware testpoint grounding, which violates project constraints.
+- **Conclusion:** Mark research complete and software-only unlock blocked. Do not fabricate unverified exploits.

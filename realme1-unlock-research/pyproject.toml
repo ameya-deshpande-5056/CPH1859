@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "realme1-unlock-research"
+version = "0.1.0"
+description = "Read-only diagnostic tool for Realme 1 (CPH1859) bootloader unlock research"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "Antigravity Research Team" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: System :: Hardware",
+]
+
+[project.scripts]
+realme1-unlock-research = "realme1_unlock_research.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

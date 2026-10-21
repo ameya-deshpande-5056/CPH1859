@@ -1,0 +1,430 @@
+{
+  "metadata": {
+    "tool_name": "realme1-unlock-research",
+    "tool_version": "0.1.0",
+    "timestamp": "2026-10-21T10:22:25.469766+05:30",
+    "session_end": "2026-10-21T10:22:25.929622+05:30",
+    "host_os": "Linux",
+    "host_machine": "x86_64",
+    "safety_policy": "STRICT_READ_ONLY"
+  },
+  "security_posture": {
+    "flash_locked": "1",
+    "oem_unlock_supported": "1",
+    "oem_unlock_allowed": "1",
+    "verified_boot_state": "green",
+    "verity_mode": "enforcing",
+    "platform": "mt6771",
+    "build_id": "CPH1859EX_11_C.50"
+  },
+  "tests": [
+    {
+      "test_id": "TEST_001_ENV",
+      "name": "Host Environment & Platform Tools Check",
+      "status": "PASSED",
+      "summary": "Host environment verified; ADB and Fastboot are installed.",
+      "commands_executed": [],
+      "details": {
+        "os_name": "Linux",
+        "os_release": "7.0.0-38-generic",
+        "os_version": "#38~24.04.4-Ubuntu SMP PREEMPT_DYNAMIC Mon Sep 14 16:37:11 UTC 2",
+        "machine": "x86_64",
+        "python_version": "3.13.16",
+        "python_executable": "/home/ameya/.pyenv/versions/3.13.16/bin/python3",
+        "tools": {
+          "adb": {
+            "found": true,
+            "path": "/usr/bin/adb",
+            "version": "Android Debug Bridge version 1.0.41"
+          },
+          "fastboot": {
+            "found": true,
+            "path": "/usr/bin/fastboot",
+            "version": "fastboot version 35.0.0-11411520"
+          },
+          "lsusb": {
+            "found": true,
+            "path": "/usr/bin/lsusb",
+            "version": "installed"
+          },
+          "udevadm": {
+            "found": true,
+            "path": "/usr/bin/udevadm",
+            "version": "255"
+          }
+        },
+        "udev_rules": {
+          "/etc/udev/rules.d/51-android.rules": false,
+          "/etc/udev/rules.d/99-mtk.rules": false,
+          "/lib/udev/rules.d/51-android.rules": true
+        }
+      }
+    },
+    {
+      "test_id": "TEST_002_USB",
+      "name": "USB Bus & Vendor/Product ID Enumeration",
+      "status": "PASSED",
+      "summary": "Detected 8 USB devices. Matched targets: OPPO / Realme Android Normal Mode (CPH1859).",
+      "commands_executed": [
+        {
+          "command": [
+            "lsusb"
+          ],
+          "start_time": "2026-10-21T10:22:25.488593+05:30",
+          "duration_seconds": 0.0062,
+          "exit_code": 0,
+          "stdout": "Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub\nBus 001 Device 002: ID 04f2:b760 Chicony Electronics Co., Ltd HP Wide Vision HD Camera\nBus 001 Device 003: ID 0bda:b85c Realtek Semiconductor Corp. Bluetooth Radio\nBus 002 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub\nBus 003 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub\nBus 003 Device 002: ID 04f3:0c00 Elan Microelectronics Corp. ELAN:ARM-M4\nBus 003 Device 008: ID 22d9:2769 OPPO Electronics Corp. CPH1859\nBus 004 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub",
+          "stderr": "",
+          "is_safe": true
+        }
+      ],
+      "details": {
+        "execution": {
+          "start_time": "2026-10-21T10:22:25.488593+05:30",
+          "duration_seconds": 0.0062,
+          "exit_code": 0,
+          "error": ""
+        },
+        "total_usb_devices": 8,
+        "devices": [
+          {
+            "bus": "001",
+            "device": "001",
+            "vendor_id": "1d6b",
+            "product_id": "0002",
+            "description": "Linux Foundation 2.0 root hub"
+          },
+          {
+            "bus": "001",
+            "device": "002",
+            "vendor_id": "04f2",
+            "product_id": "b760",
+            "description": "Chicony Electronics Co., Ltd HP Wide Vision HD Camera"
+          },
+          {
+            "bus": "001",
+            "device": "003",
+            "vendor_id": "0bda",
+            "product_id": "b85c",
+            "description": "Realtek Semiconductor Corp. Bluetooth Radio"
+          },
+          {
+            "bus": "002",
+            "device": "001",
+            "vendor_id": "1d6b",
+            "product_id": "0003",
+            "description": "Linux Foundation 3.0 root hub"
+          },
+          {
+            "bus": "003",
+            "device": "001",
+            "vendor_id": "1d6b",
+            "product_id": "0002",
+            "description": "Linux Foundation 2.0 root hub"
+          },
+          {
+            "bus": "003",
+            "device": "002",
+            "vendor_id": "04f3",
+            "product_id": "0c00",
+            "description": "Elan Microelectronics Corp. ELAN:ARM-M4"
+          },
+          {
+            "bus": "003",
+            "device": "008",
+            "vendor_id": "22d9",
+            "product_id": "2769",
+            "description": "OPPO Electronics Corp. CPH1859"
+          },
+          {
+            "bus": "004",
+            "device": "001",
+            "vendor_id": "1d6b",
+            "product_id": "0003",
+            "description": "Linux Foundation 3.0 root hub"
+          }
+        ],
+        "matched_special_devices": [
+          {
+            "vendor_id": "22d9",
+            "product_id": "2769",
+            "description": "OPPO Electronics Corp. CPH1859",
+            "profile_name": "OPPO / Realme Android Normal Mode (CPH1859)"
+          }
+        ],
+        "is_mtk_brom_detected": false,
+        "is_mtk_preloader_detected": false,
+        "is_oppo_normal_detected": true,
+        "is_fastboot_usb_detected": false
+      }
+    },
+    {
+      "test_id": "TEST_003_ADB",
+      "name": "ADB Connectivity & Interface State",
+      "status": "PASSED",
+      "summary": "Target device identified via ADB in authorized 'device' mode.",
+      "commands_executed": [
+        {
+          "command": [
+            "adb",
+            "devices",
+            "-l"
+          ],
+          "start_time": "2026-10-21T10:22:25.494951+05:30",
+          "duration_seconds": 0.0028,
+          "exit_code": 0,
+          "stdout": "List of devices attached\n[REDACTED_SERIAL]       device 3-2 product:CPH1859 model:CPH1859 device:CPH1859 transport_id:2\n\n",
+          "stderr": "",
+          "is_safe": true
+        }
+      ],
+      "details": {
+        "execution": {
+          "start_time": "2026-10-21T10:22:25.494951+05:30",
+          "duration_seconds": 0.0028,
+          "exit_code": 0,
+          "raw_output": "List of devices attached\n[REDACTED_SERIAL]       device 3-2 product:CPH1859 model:CPH1859 device:CPH1859 transport_id:2\n\n",
+          "error": ""
+        },
+        "devices_count": 1,
+        "devices": [
+          {
+            "raw_serial": "[REDACTED_SERIAL]",
+            "status": "device",
+            "product": "CPH1859",
+            "model": "CPH1859",
+            "device": "CPH1859",
+            "transport_id": "2"
+          }
+        ]
+      }
+    },
+    {
+      "test_id": "TEST_004_PROPS",
+      "name": "Android Build & Verified Boot Properties",
+      "status": "PASSED",
+      "summary": "Collected 867 properties. Confirmed SoC: mt6771, Build: CPH1859EX_11_C.50.",
+      "commands_executed": [
+        {
+          "command": [
+            "adb",
+            "shell",
+            "getprop"
+          ],
+          "start_time": "2026-10-21T10:22:25.497802+05:30",
+          "duration_seconds": 0.0433,
+          "exit_code": 0,
+          "stdout": "[ro.product.model]: [CPH1859]\n[ro.product.name]: [CPH1859]\n[ro.product.device]: [CPH1859]\n[ro.product.brand]: [OPPO]\n[ro.product.manufacturer]: [OPPO]\n[ro.build.version.release]: [9]\n[ro.build.version.sdk]: [28]\n[ro.build.version.security_patch]: [2020-09-05]\n[ro.build.display.id]: [CPH1859EX_11_C.50]\n[ro.build.fingerprint]: [OPPO/CPH1859/CPH1859:9/PPR1.180610.011/1601287606:user/release-keys]\n[ro.build.date]: [Fri Oct 16 23:28:18 CST 2020]\n[ro.build.date.utc]: [1602862098]\n[ro.build.type]: [user]\n[ro.boot.hardware]: [mt6771]\n[ro.boot.bootloader]: [NOT_FOUND]\n[ro.bootloader]: [unknown]\n[ro.bootmode]: [normal]\n[ro.boot.mode]: [normal]\n[ro.boot.flash.locked]: [1]\n[ro.oem_unlock_supported]: [1]\n[sys.oem_unlock_allowed]: [1]\n[ro.boot.verifiedbootstate]: [green]\n[ro.boot.veritymode]: [enforcing]\n[ro.boot.vbmeta.device_state]: [NOT_FOUND]\n[ro.boot.serialno]: [[REDACTED_SERIAL]]\n[ro.serialno]: [[REDACTED_SERIAL]]\n[ro.board.platform]: [mt6771]\n[ro.mediatek.version.release]: [CPH1859_11_C.50_201016]\n[ro.mediatek.platform]: [MT6771]\n[ro.crypto.state]: [encrypted]\n[ro.crypto.type]: [block]",
+          "stderr": "",
+          "is_safe": true
+        }
+      ],
+      "details": {
+        "execution": {
+          "start_time": "2026-10-21T10:22:25.497802+05:30",
+          "duration_seconds": 0.0433,
+          "exit_code": 0,
+          "error": ""
+        },
+        "critical_properties": {
+          "ro.product.model": "CPH1859",
+          "ro.product.name": "CPH1859",
+          "ro.product.device": "CPH1859",
+          "ro.product.brand": "OPPO",
+          "ro.product.manufacturer": "OPPO",
+          "ro.build.version.release": "9",
+          "ro.build.version.sdk": "28",
+          "ro.build.version.security_patch": "2020-09-05",
+          "ro.build.display.id": "CPH1859EX_11_C.50",
+          "ro.build.fingerprint": "OPPO/CPH1859/CPH1859:9/PPR1.180610.011/1601287606:user/release-keys",
+          "ro.build.date": "Fri Oct 16 23:28:18 CST 2020",
+          "ro.build.date.utc": "1602862098",
+          "ro.build.type": "user",
+          "ro.boot.hardware": "mt6771",
+          "ro.boot.bootloader": "NOT_FOUND",
+          "ro.bootloader": "unknown",
+          "ro.bootmode": "normal",
+          "ro.boot.mode": "normal",
+          "ro.boot.flash.locked": "1",
+          "ro.oem_unlock_supported": "1",
+          "sys.oem_unlock_allowed": "1",
+          "ro.boot.verifiedbootstate": "green",
+          "ro.boot.veritymode": "enforcing",
+          "ro.boot.vbmeta.device_state": "NOT_FOUND",
+          "ro.boot.serialno": "[REDACTED_SERIAL]",
+          "ro.serialno": "[REDACTED_SERIAL]",
+          "ro.board.platform": "mt6771",
+          "ro.mediatek.version.release": "CPH1859_11_C.50_201016",
+          "ro.mediatek.platform": "MT6771",
+          "ro.crypto.state": "encrypted",
+          "ro.crypto.type": "block"
+        },
+        "security_posture": {
+          "flash_locked": "1",
+          "oem_unlock_supported": "1",
+          "oem_unlock_allowed": "1",
+          "verified_boot_state": "green",
+          "verity_mode": "enforcing",
+          "platform": "mt6771",
+          "build_id": "CPH1859EX_11_C.50"
+        },
+        "total_properties_count": 867
+      }
+    },
+    {
+      "test_id": "TEST_005_FASTBOOT",
+      "name": "Fastboot Bus Status Check",
+      "status": "INCONCLUSIVE",
+      "summary": "No devices currently in Fastboot mode (expected during normal OS operation).",
+      "commands_executed": [
+        {
+          "command": [
+            "fastboot",
+            "devices"
+          ],
+          "start_time": "2026-10-21T10:22:25.542221+05:30",
+          "duration_seconds": 0.2868,
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": "",
+          "is_safe": true
+        }
+      ],
+      "details": {
+        "execution": {
+          "start_time": "2026-10-21T10:22:25.542221+05:30",
+          "duration_seconds": 0.2868,
+          "exit_code": 0,
+          "error": ""
+        },
+        "devices_count": 0,
+        "devices": [],
+        "is_fastboot_active": false
+      }
+    },
+    {
+      "test_id": "TEST_006_PACKAGES",
+      "name": "Deep Testing & Unlock Package Inspection",
+      "status": "PASSED",
+      "summary": "Audit complete. DeepTesting application is NOT INSTALLED.",
+      "commands_executed": [
+        {
+          "command": [
+            "adb",
+            "shell",
+            "pm",
+            "list",
+            "packages"
+          ],
+          "start_time": "2026-10-21T10:22:25.829155+05:30",
+          "duration_seconds": 0.1002,
+          "exit_code": 0,
+          "stdout": "mediatek: ['com.mediatek.gba', 'com.mediatek.ims', 'com.mediatek.location.lppe.main', 'com.mediatek.providers.drm', 'com.mediatek', 'com.mediatek.nlpservice', 'com.mediatek.location.mtknlp']\ncoloros: ['com.coloros.backuprestore', 'com.coloros.phonenoareainquire', 'com.coloros.wirelesssettings', 'com.coloros.gamespace', 'com.coloros.simsettings', 'com.coloros.healthcheck', 'com.coloros.weather.service', 'com.coloros.providers.downloads.ui', 'com.coloros.athena', 'com.coloros.blacklistapp', 'com.coloros.blacklist', 'com.coloros.wifibackuprestore', 'com.coloros.oshare', 'com.coloros.gesture', 'com.coloros.bootreg', 'com.coloros.screenrecorder', 'com.coloros.oppoguardelf', 'com.coloros.assistantscreen', 'com.coloros.activation', 'com.coloros.notificationmanager', 'com.coloros.smartdrive', 'com.coloros.translate.engine', 'com.coloros.compass', 'com.coloros.backuprestore.remoteservice', 'com.coloros.recents', 'com.coloros.wallpapers', 'com.coloros.mcs', 'com.coloros.sau', 'com.coloros.encryption', 'com.coloros.weather', 'com.coloros.usbselection', 'com.coloros.colorfilestand', 'com.coloros.pictorial', 'com.coloros.widget.smallweather', 'com.coloros.flashlight', 'com.coloros.sceneservice', 'com.coloros.alarmclock', 'com.coloros.phonemanager', 'com.coloros.securepay', 'com.coloros.sauhelper', 'com.coloros.safecenter', 'com.coloros.exserviceui', 'com.coloros.screenshot', 'com.coloros.cloud', 'com.coloros.video', 'com.coloros.filemanager', 'com.coloros.oppomultiapp', 'com.coloros.ocrscanner', 'com.coloros.soundrecorder', 'com.coloros.ocrservice', 'com.coloros.providers.fileinfo', 'com.coloros.floatassistant', 'com.coloros.childrenspace', 'com.coloros.gallery3d', 'com.coloros.appmanager', 'com.coloros.securitypermission']",
+          "stderr": "",
+          "is_safe": true
+        }
+      ],
+      "details": {
+        "execution": {
+          "start_time": "2026-10-21T10:22:25.829155+05:30",
+          "duration_seconds": 0.1002,
+          "exit_code": 0,
+          "error": ""
+        },
+        "total_packages_count": 218,
+        "deeptesting_installed": false,
+        "matched_packages": {
+          "deeptesting": [],
+          "deep_test": [],
+          "unlock": [],
+          "engineermode": [],
+          "factory": [],
+          "test": [],
+          "mediatek": [
+            "com.mediatek.gba",
+            "com.mediatek.ims",
+            "com.mediatek.location.lppe.main",
+            "com.mediatek.providers.drm",
+            "com.mediatek",
+            "com.mediatek.nlpservice",
+            "com.mediatek.location.mtknlp"
+          ],
+          "coloros": [
+            "com.coloros.backuprestore",
+            "com.coloros.phonenoareainquire",
+            "com.coloros.wirelesssettings",
+            "com.coloros.gamespace",
+            "com.coloros.simsettings",
+            "com.coloros.healthcheck",
+            "com.coloros.weather.service",
+            "com.coloros.providers.downloads.ui",
+            "com.coloros.athena",
+            "com.coloros.blacklistapp",
+            "com.coloros.blacklist",
+            "com.coloros.wifibackuprestore",
+            "com.coloros.oshare",
+            "com.coloros.gesture",
+            "com.coloros.bootreg",
+            "com.coloros.screenrecorder",
+            "com.coloros.oppoguardelf",
+            "com.coloros.assistantscreen",
+            "com.coloros.activation",
+            "com.coloros.notificationmanager",
+            "com.coloros.smartdrive",
+            "com.coloros.translate.engine",
+            "com.coloros.compass",
+            "com.coloros.backuprestore.remoteservice",
+            "com.coloros.recents",
+            "com.coloros.wallpapers",
+            "com.coloros.mcs",
+            "com.coloros.sau",
+            "com.coloros.encryption",
+            "com.coloros.weather",
+            "com.coloros.usbselection",
+            "com.coloros.colorfilestand",
+            "com.coloros.pictorial",
+            "com.coloros.widget.smallweather",
+            "com.coloros.flashlight",
+            "com.coloros.sceneservice",
+            "com.coloros.alarmclock",
+            "com.coloros.phonemanager",
+            "com.coloros.securepay",
+            "com.coloros.sauhelper",
+            "com.coloros.safecenter",
+            "com.coloros.exserviceui",
+            "com.coloros.screenshot",
+            "com.coloros.cloud",
+            "com.coloros.video",
+            "com.coloros.filemanager",
+            "com.coloros.oppomultiapp",
+            "com.coloros.ocrscanner",
+            "com.coloros.soundrecorder",
+            "com.coloros.ocrservice",
+            "com.coloros.providers.fileinfo",
+            "com.coloros.floatassistant",
+            "com.coloros.childrenspace",
+            "com.coloros.gallery3d",
+            "com.coloros.appmanager",
+            "com.coloros.securitypermission"
+          ]
+        }
+      }
+    },
+    {
+      "test_id": "TEST_007_POSTURE",
+      "name": "Security & Bootloader Posture Assessment",
+      "status": "PASSED",
+      "summary": "Bootloader is LOCKED. OEM Unlocking toggle is ENABLED (allowed).",
+      "commands_executed": [],
+      "details": {
+        "flash_locked": "1",
+        "oem_unlock_supported": "1",
+        "oem_unlock_allowed": "1",
+        "verified_boot_state": "green",
+        "verity_mode": "enforcing",
+        "platform": "mt6771",
+        "build_id": "CPH1859EX_11_C.50"
+      }
+    }
+  ]
+}
