@@ -25,6 +25,19 @@
 | **D004** | C.50 Little Kernel differential analysis & cert2 dissection | **DONE** | P004 | Phase 4 |
 | **V002** | Independent validation of LK differential analysis & test suite | **DONE** | D004 | Phase 5 |
 | **V003** | Independent Python validator code review & regression hardening | **DONE** | V002 | Phase 5 |
+| **R005** | Preloader USB architecture, command dispatch & unlock feasibility | **DONE** | V003 | Phase 6 |
+
+---
+
+## Phase 6 Task Details
+
+### R005: Preloader USB Architecture, Command Dispatch & Unlock Feasibility
+- **Status:** DONE
+- **Objective:** Perform static, read-only reverse engineering on MediaTek MT6771 Preloader binaries (`preloader_oppo6771_17065.bin` and `preloader_emmc.img`). Map GFH header, source modules, USB CDC ACM interface (`0e8d:2000`), command-dispatch routines (`bldr_handshake`, `usbdl_send_da`, `usbdl_vfy_da`, `usbdl_jump_da`), state transitions, and security policies (`sboot_state.c`, `sec.c`, `sec_auth.c`, `partition.c`). Synthesize findings across Little Kernel, Preloader, and Fastboot initialization to assess software-only bootloader unlock feasibility and identify precise non-invasive evidence gaps.
+- **Required Inputs:** `~/Realme1/C49_extracted/preloader_oppo6771_17065.bin`, `~/Realme1/C50_research/c50_static/preloader_emmc.img`, `~/Realme1/C49_extracted/lk.img`, `~/Realme1/C50_research/c50_static/lk.img`.
+- **Actions Performed:** Verified GFH Header Type 0 structure (`0x5050001` eMMC, SRAM load address `0x00200F10`, entry `0x00201000`); identified source module paths; decoded USB state machine and command-dispatch pathways; analyzed Download Agent verification logic (`usbdl_vfy_da:disabled` with hardware SLA enforcement in `sec_auth.c`); confirmed Watchdog emergency BootROM trigger (`0x0371F4`); documented Fastboot Watchdog reset mechanism (`0x6000CD30` writing `0x1971` to `0x10007000`); verified CPH1859 vs CPH1861 model codebase relationships; formulated comprehensive epistemic evidence table (confirmed/inferred/unknown); produced research artifact `artifacts/preloader_usb_architecture_and_feasibility.md` (`ART-011`).
+- **Evidence & Artifact References:** `artifacts/preloader_usb_architecture_and_feasibility.md` (ART-011).
+- **Result & Confidence Level:** Complete, 100% confidence.
 
 ---
 

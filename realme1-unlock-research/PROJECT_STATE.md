@@ -2,11 +2,11 @@
 
 ## Authoritative Progress Indicator
 
-- **Project Status:** ACTIVE RESEARCH / PHASE 5 INDEPENDENT VALIDATION & CODE REVIEW COMPLETE
-- **Current Phase:** Phase 5: Independent Validation of LK Differential Analysis
-- **Current Task ID & Description:** V003: Independent Python validator code review & regression hardening
-- **Overall Completion Estimate:** 100% of Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5 research deliverables
-- **Last Completed Milestone:** Completed comprehensive code review and hardening of validation utility `scripts/validate_lk_differential.py` and test suite `tests/test_differential_validator.py`. Implemented dynamic pure-Python ASN.1 DER parser (`parse_der_tlv`, `parse_der_sequence`, `decode_oid`), dynamic certificate parsers (`parse_cert1_info`, `parse_cert2_info`), bounds-safe diff counter (`safe_diff_count`), symmetric container/SPKI validation for both C.49 and C.50, and robust error handling. Added 19 new negative unit tests verifying rejection of truncated files, corrupted MTK headers, altered payload digests, invalid signatures, malformed DER structures, and unexpected code diffs without unhandled crashes. Proved test suite sensitivity under deliberate logic breakage. All 36 repository unit tests passing (23 in differential validator suite).
+- **Project Status:** ACTIVE RESEARCH / PHASE 6 PRELOADER USB ARCHITECTURE & BOOT-CHAIN SYNTHESIS COMPLETE
+- **Current Phase:** Phase 6: Preloader USB Architecture & Boot-Chain Synthesis
+- **Current Task ID & Description:** R005: Preloader USB architecture, command dispatch & unlock feasibility
+- **Overall Completion Estimate:** 100% of Phase 1 through Phase 6 research deliverables
+- **Last Completed Milestone:** Static reverse engineering and architectural synthesis of MediaTek MT6771 Preloader USB CDC ACM interface (`0e8d:2000`), command dispatch state machine (`bldr_handshake`, `usbdl_send_da`, `usbdl_vfy_da`, `usbdl_jump_da`), emergency BootROM reset trigger (`0x0371F4`), and security policies (`sboot_state.c`, `sec.c`, `sec_auth.c`, `partition.c`). Established definitive epistemic evidence matrix and verified that software-only bootloader unlock is blocked across all standard software entry points on factory C.50 firmware. Produced `artifacts/preloader_usb_architecture_and_feasibility.md` (`ART-011`).
 - **Formal Project Outcome:** **`NO VIABLE SOFTWARE-ONLY UNLOCK ROUTE FOUND`** (live C.50 device enforces identical token verification gating; bootloader code is 100% identical between C.49 and C.50).
 - **Primary Technical Findings (Audited & Verified):**
   1. **Token Storage Coordinates:** `verify_unlock_token()` (`0x6002EB00`) calls `read_reserve4` (`0x6002C794`), which adds base sector `0x7800` to argument `0x16`, establishing the actual token location as **sector `0x7816`** (`0x00F02C00` bytes into partition `reserve4`). Read length is 8 sectors (4,096 bytes).
@@ -19,12 +19,13 @@
   8. **Preloader Code Identity:** C.49 and C.50 Preloaders are 100% code-identical after normalizing the 2,048-byte `EMMC_BOOT` header.
   9. **CPH1861 Variant Safety Warning:** C.50 firmware is an `oppo6771_17065` codebase historically targeted for CPH1861. It must not be assumed safe to flash onto CPH1859, preserving the project's non-invasive read-only policy.
 - **Next Three Actions (Prioritized):**
-  1. Review independent validation results in `artifacts/c50_differential_validation.md` (ART-009) and `artifacts/c50_differential_validation.json` (ART-010).
-  2. Maintain strictly non-invasive, read-only posture on the target device.
-  3. Synthesize final project outcomes across `REPORT.md` and evidence artifacts.
-- **Last Updated:** 2026-10-21T16:00:00+05:30
+  1. Review Preloader USB architecture findings and software-only unlock feasibility report in `artifacts/preloader_usb_architecture_and_feasibility.md` (ART-011).
+  2. Source and decompile historical ColorOS 5/6 `com.coloros.deeptesting.apk` to investigate client-side token structures.
+  3. Maintain strictly non-invasive, read-only posture on the target device.
+- **Last Updated:** 2026-10-21T16:22:00+05:30
 - **Current Git Branch:** main
 - **Relevant Artifact Paths:**
+  - `realme1-unlock-research/artifacts/preloader_usb_architecture_and_feasibility.md` (ART-011)
   - `realme1-unlock-research/artifacts/c50_differential_validation.md` (ART-009)
   - `realme1-unlock-research/artifacts/c50_differential_validation.json` (ART-010)
   - `realme1-unlock-research/artifacts/c50_differential_analysis.md` (ART-008)
