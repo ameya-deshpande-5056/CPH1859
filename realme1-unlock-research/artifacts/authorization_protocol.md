@@ -247,8 +247,17 @@ graph TD
 7. `fastboot_init()` terminates with a Watchdog hard reboot on verification failure without registering any Fastboot commands.
 
 ### Hypotheses & Unknowns:
-1. **Private Key Location:** Unknown. No corresponding private key material was found in the examined device artifacts, but that absence does not establish exclusive server custody or identify the historical service that controlled it.
-2. **Remaining Sector Bytes:** The remaining 3,824 bytes of sector `0x7816` (offsets `0x110`–`0xFFF`) are zeroed by `clean_flash_unlock_data()` during relocking, but are ignored during validation. Whether the historical DeepTesting server transmitted metadata in this region is unknown without an authenticated network capture.
+1. **Private Key Location:** Unknown. No corresponding private key material was found in the examined device artifacts. The inference that the private key was stored strictly on Realme/Oppo servers or in their HSMs is plausible given the DeepTesting client-server architecture, but the LK binary alone cannot establish where the key was stored, who controlled it, or whether signing was delegated to another system.
+2. **Alternative Token Sources / Implementation Flaws:** The verifier's public key cannot generate signatures, but possessing the private key is not necessarily the only conceivable way to obtain an accepted record. A previously issued valid token for the matching device or a genuine implementation flaw would be separate possibilities. Neither is established by the current findings.
+3. **Remaining Sector Bytes:** The remaining 3,824 bytes of sector `0x7816` (offsets `0x110`–`0xFFF`) are zeroed by `clean_flash_unlock_data()` during relocking, but are ignored during validation. Whether the historical DeepTesting server transmitted metadata in this region is unknown without an authenticated network capture.
+
+### Cryptographic Feasibility Assessment
+
+> [!IMPORTANT]
+> The embedded RSA-2048 public key and complete knowledge of LK's RSASSA-PSS/SHA-256 verification procedure are insufficient to generate a fresh valid unlock token with practical computational resources. No private signing capability or exploitable verification defect has been identified. Consequently, fresh in-app token generation is not a viable approach on the evidence currently available.
+
+- **RSA-2048 Security:** Knowing the public modulus $N$, public exponent $e$, hash algorithm, PSS salt length, and verification implementation does not provide a practical way to generate a valid signature. Factoring $N$ is the conventional route to recovering the private key, although the security argument is broader than factoring alone: no known practical attack on properly generated RSA-2048 keys makes signature forgery feasible.
+- **Verification Integrity:** The verification routine strictly executes standard RFC 8017 RSASSA-PSS without algorithmic shortcuts, unvalidated memory regions, or bypassable edge conditions.
 
 ### Provenance limitation
 
