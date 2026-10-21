@@ -1,7 +1,7 @@
 # Next Agent Handoff: Realme 1 (CPH1859) Bootloader Unlock Research
 
 ## Current Objective
-Phase 5 independent validation of C.49/C.50 Little Kernel (`lk.img`) and Preloader differential analysis is **COMPLETE**. All container structures, ASN.1 certificates (`cert1`/`cert2`), exact payload hash intervals (`[0x000200, 0x0B72D0)`), cryptographic signature parameters (RSASSA-PSS salt length 32), Preloader code identity, and string resolutions have been deterministically verified via `scripts/validate_lk_differential.py` and unit-tested in `tests/test_differential_validator.py` (17/17 tests passing).
+Phase 5 independent validation and Python validator code review of C.49/C.50 Little Kernel (`lk.img`) and Preloader differential analysis is **COMPLETE**. All container structures, dynamic ASN.1 DER certificates (`cert1`/`cert2`), exact payload hash intervals (`[0x000200, 0x0B72D0)`), cryptographic signature parameters (RSASSA-PSS salt length 32), Preloader code identity, and string resolutions have been deterministically verified via `scripts/validate_lk_differential.py` and unit-tested in `tests/test_differential_validator.py` (36/36 tests passing across test suite, 23 in differential validator suite).
 
 ## Current Status
 - **Confirmed Validation Results:**
@@ -41,9 +41,9 @@ Phase 5 independent validation of C.49/C.50 Little Kernel (`lk.img`) and Preload
 - Differential analysis artifact: `artifacts/c50_differential_analysis.md` (ART-008, SHA-256: `31f2b2b3382e8abb49c8fafd72a7ebead5dae4b59c5b68f2568bbb486b1b48f2`).
 
 ## Work Completed
-- Tasks `T001` through `S003` (Phase 1), `A001` through `S004` (Phase 2), `F003` (Phase 3), `P004`/`C001`/`D004` (Phase 4), and `V002` (Phase 5) are marked **DONE**.
+- Tasks `T001` through `S003` (Phase 1), `A001` through `S004` (Phase 2), `F003` (Phase 3), `P004`/`C001`/`D004` (Phase 4), and `V002`/`V003` (Phase 5) are marked **DONE**.
 - 10 research artifacts indexed in `artifacts/README.md`.
-- Test suite with 17/17 passing tests (`PYTHONPATH=src python3 -m unittest discover -s tests`).
+- Test suite with 36/36 passing tests (`PYTHONPATH=src:scripts python3 -m unittest discover -s tests`).
 
 ## Work in Progress
 None. All Phase 5 validation requirements are fully met.

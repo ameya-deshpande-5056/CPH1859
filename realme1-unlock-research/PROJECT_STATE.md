@@ -2,11 +2,11 @@
 
 ## Authoritative Progress Indicator
 
-- **Project Status:** ACTIVE RESEARCH / PHASE 5 INDEPENDENT VALIDATION COMPLETE
+- **Project Status:** ACTIVE RESEARCH / PHASE 5 INDEPENDENT VALIDATION & CODE REVIEW COMPLETE
 - **Current Phase:** Phase 5: Independent Validation of LK Differential Analysis
-- **Current Task ID & Description:** V002: Independent validation of LK differential analysis & test suite
+- **Current Task ID & Description:** V003: Independent Python validator code review & regression hardening
 - **Overall Completion Estimate:** 100% of Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5 research deliverables
-- **Last Completed Milestone:** Delivered independent validation via deterministic script `scripts/validate_lk_differential.py`: verified whole-file hashes, exact 315-byte diff in half-open intervals (`[0x07EA23, 0x07EA48)`, `[0x0B7F73, 0x0B7F93)`, `[0x0B8031, 0x0B8131)`), exact payload hash interval `[0x000200, 0x0B72D0)`, DER ASN.1 certificate fields (salt length 32), cryptographic signature validity, Preloader normalization/code identity, and fastboot string table resolution. All 17 unit tests passing.
+- **Last Completed Milestone:** Completed comprehensive code review and hardening of validation utility `scripts/validate_lk_differential.py` and test suite `tests/test_differential_validator.py`. Implemented dynamic pure-Python ASN.1 DER parser (`parse_der_tlv`, `parse_der_sequence`, `decode_oid`), dynamic certificate parsers (`parse_cert1_info`, `parse_cert2_info`), bounds-safe diff counter (`safe_diff_count`), symmetric container/SPKI validation for both C.49 and C.50, and robust error handling. Added 19 new negative unit tests verifying rejection of truncated files, corrupted MTK headers, altered payload digests, invalid signatures, malformed DER structures, and unexpected code diffs without unhandled crashes. Proved test suite sensitivity under deliberate logic breakage. All 36 repository unit tests passing (23 in differential validator suite).
 - **Formal Project Outcome:** **`NO VIABLE SOFTWARE-ONLY UNLOCK ROUTE FOUND`** (live C.50 device enforces identical token verification gating; bootloader code is 100% identical between C.49 and C.50).
 - **Primary Technical Findings (Audited & Verified):**
   1. **Token Storage Coordinates:** `verify_unlock_token()` (`0x6002EB00`) calls `read_reserve4` (`0x6002C794`), which adds base sector `0x7800` to argument `0x16`, establishing the actual token location as **sector `0x7816`** (`0x00F02C00` bytes into partition `reserve4`). Read length is 8 sectors (4,096 bytes).
@@ -22,7 +22,7 @@
   1. Review independent validation results in `artifacts/c50_differential_validation.md` (ART-009) and `artifacts/c50_differential_validation.json` (ART-010).
   2. Maintain strictly non-invasive, read-only posture on the target device.
   3. Synthesize final project outcomes across `REPORT.md` and evidence artifacts.
-- **Last Updated:** 2026-10-21T15:40:00+05:30
+- **Last Updated:** 2026-10-21T16:00:00+05:30
 - **Current Git Branch:** main
 - **Relevant Artifact Paths:**
   - `realme1-unlock-research/artifacts/c50_differential_validation.md` (ART-009)

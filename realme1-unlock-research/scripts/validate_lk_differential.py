@@ -6,13 +6,13 @@ Validates the differential reverse engineering findings between ColorOS C.49 and
 bootloader binaries (Little Kernel & Preloader) for the Realme 1 (CPH1859).
 
 Checks performed:
-  1. File existence and whole-file SHA-256 hash recalculation.
-  2. Byte-by-byte differential enumeration in half-open intervals [start, end).
-  3. MediaTek container header boundary and magic validation.
+  1. File existence, size bounds, and whole-file SHA-256 hash recalculation.
+  2. Safe byte-by-byte differential enumeration in half-open intervals [start, end).
+  3. Symmetric MediaTek container header boundary and magic validation (C.49 and C.50).
   4. Exact payload range hashing and comparison with cert2 digest extension.
-  5. ASN.1 DER certificate parsing, OID inspection, key relationship verification.
+  5. Dynamic ASN.1 DER certificate parsing, OID inspection, key relationship verification.
   6. RSASSA-PSS signature verification (SHA-256, MGF1 SHA-256, salt length 32).
-  7. Preloader header normalization (EMMC_BOOT), byte diff, and code region audit.
+  7. Preloader header normalization (EMMC_BOOT), safe byte diff, and code region audit.
   8. Fastboot token verification routine (verify_unlock_token, fastboot_init) audit.
   9. String table resolution (fastboot_unlock_verify vs fastboot_unlock_verity).
 
@@ -26,11 +26,11 @@ import json
 import os
 import struct
 import sys
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import serialization, hashes
 import capstone
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 # Default canonical paths
 DEFAULT_C49_LK = os.path.expanduser("~/Realme1/C49_extracted/lk.img")
@@ -46,9 +46,35 @@ EXPECTED_HASHES = {
     "c50_preloader": "2de60eda847de8ea3ae44368fc905f57dd63a842a3c7ad455f0fd1c326ebaeca",
 }
 
+# Minimum file bounds required for valid container parsing
+MIN_LK_SIZE = 0x0B8140  # 753,984 bytes
+MIN_PRELOADER_C49_SIZE = 265756
+MIN_PRELOADER_C50_SIZE = 2048
+
 
 def compute_sha256(data: bytes) -> str:
+    """Compute SHA-256 hex digest of raw bytes."""
     return hashlib.sha256(data).hexdigest()
+
+
+def safe_diff_count(b1: bytes, b2: bytes, start: int = 0, end: Optional[int] = None) -> int:
+    """Safely count differing bytes between b1 and b2 within [start, end), without IndexError."""
+    len1 = len(b1)
+    len2 = len(b2)
+    max_len = max(len1, len2)
+    if end is None or end > max_len:
+        end = max_len
+    if start >= end or start >= max_len:
+        return 0
+
+    diffs = 0
+    common_end = min(end, len1, len2)
+    if start < common_end:
+        diffs += sum(b1[i] != b2[i] for i in range(start, common_end))
+        start = common_end
+    if start < end:
+        diffs += end - start
+    return diffs
 
 
 def find_diff_ranges(b1: bytes, b2: bytes) -> List[Tuple[int, int]]:
@@ -89,6 +115,225 @@ def cluster_ranges(ranges: List[Tuple[int, int]], max_gap: int = 16) -> List[Tup
             cur_start, cur_end = s, e
     clusters.append((cur_start, cur_end))
     return clusters
+
+
+# ---------------------------------------------------------------------------
+# Dynamic ASN.1 DER Parser (Lightweight, pure-Python, zero external parser deps)
+# ---------------------------------------------------------------------------
+
+def parse_der_tlv(data: bytes, offset: int = 0) -> Optional[Tuple[int, int, int, bytes]]:
+    """Parse a single ASN.1 DER Tag-Length-Value element.
+
+    Returns (tag, header_len, length, value_bytes) or None if truncated or invalid.
+    """
+    if offset < 0 or offset >= len(data):
+        return None
+    tag = data[offset]
+    if offset + 1 >= len(data):
+        return None
+    l_byte = data[offset + 1]
+    if l_byte & 0x80 == 0:
+        length = l_byte
+        header_len = 2
+    else:
+        num_len_bytes = l_byte & 0x7F
+        if num_len_bytes == 0 or num_len_bytes > 4 or offset + 2 + num_len_bytes > len(data):
+            return None
+        length = int.from_bytes(data[offset + 2 : offset + 2 + num_len_bytes], "big")
+        header_len = 2 + num_len_bytes
+    if offset + header_len + length > len(data):
+        return None
+    value = data[offset + header_len : offset + header_len + length]
+    return tag, header_len, length, value
+
+
+def parse_der_sequence(data: bytes, offset: int = 0) -> Optional[List[Dict[str, Any]]]:
+    """Parse a DER SEQUENCE and return its child elements as dictionaries."""
+    elem = parse_der_tlv(data, offset)
+    if not elem or elem[0] != 0x30:
+        return None
+    _, seq_hlen, seq_len, seq_val = elem
+    children: List[Dict[str, Any]] = []
+    sub_off = 0
+    while sub_off < len(seq_val):
+        child = parse_der_tlv(seq_val, sub_off)
+        if not child:
+            return None
+        ctag, chlen, clen, cval = child
+        elem_offset = offset + seq_hlen + sub_off
+        total_len = chlen + clen
+        children.append({
+            "tag": ctag,
+            "offset": elem_offset,
+            "header_len": chlen,
+            "length": clen,
+            "total_len": total_len,
+            "raw": data[elem_offset : elem_offset + total_len],
+            "value": cval,
+        })
+        sub_off += total_len
+    return children
+
+
+def decode_oid(b: bytes) -> str:
+    """Decode DER-encoded Object Identifier bytes into a dot-notation string."""
+    if not b:
+        return ""
+    first = b[0]
+    oid = [str(first // 40), str(first % 40)]
+    val = 0
+    for byte in b[1:]:
+        val = (val << 7) | (byte & 0x7F)
+        if byte & 0x80 == 0:
+            oid.append(str(val))
+            val = 0
+    return ".".join(oid)
+
+
+def parse_mtk_header(data: bytes, offset: int) -> Optional[Dict[str, Any]]:
+    """Parse a MediaTek image container header (union prt_img_hdr)."""
+    if offset < 0 or offset + 56 > len(data):
+        return None
+    try:
+        magic, dsize, name = struct.unpack("<II32s", data[offset : offset + 40])
+        ext_magic, hdr_size = struct.unpack("<II", data[offset + 48 : offset + 56])
+        clean_name = name.split(b"\x00")[0].decode("ascii", errors="replace")
+        return {
+            "offset": f"0x{offset:06x}",
+            "magic": f"0x{magic:08x}",
+            "ext_magic": f"0x{ext_magic:08x}",
+            "name": clean_name,
+            "dsize": dsize,
+            "dsize_hex": f"0x{dsize:x}",
+            "hdr_size": hdr_size,
+        }
+    except Exception:
+        return None
+
+
+def parse_cert1_info(cert1_bytes: bytes) -> Dict[str, Any]:
+    """Dynamically parse MediaTek Key Certificate (cert1) via ASN.1 DER."""
+    c1_seq = parse_der_sequence(cert1_bytes, 0)
+    if not c1_seq or len(c1_seq) < 3:
+        raise ValueError("Malformed cert1: Expected SEQUENCE with 3 elements")
+    tbs_elem = c1_seq[0]
+    sig_alg_elem = c1_seq[1]
+    sig_elem = c1_seq[2]
+
+    if tbs_elem["tag"] != 0x30 or sig_alg_elem["tag"] != 0x30 or sig_elem["tag"] != 0x03:
+        raise ValueError("Malformed cert1: Top-level elements have unexpected tags")
+
+    tbs_raw = tbs_elem["raw"]
+    sig_raw = sig_elem["value"]
+    if len(sig_raw) < 2:
+        raise ValueError("Malformed cert1: Signature value too short")
+    sig_bytes = sig_raw[1:]  # Skip unused bit count byte
+
+    tbs_children = parse_der_sequence(tbs_raw, 0)
+    if not tbs_children or len(tbs_children) < 11:
+        raise ValueError("Malformed cert1: TBS sequence has insufficient children")
+
+    # Key C1 is at index 6 (SubjectPublicKeyInfo)
+    spki_c1_raw = tbs_children[6]["raw"]
+    key_c1 = serialization.load_der_public_key(spki_c1_raw)
+
+    # Key C2 is under OID 2.16.886.2454.1.2
+    key_c2_raw = None
+    for i, child in enumerate(tbs_children):
+        if child["tag"] == 0x06 and decode_oid(child["value"]) == "2.16.886.2454.1.2":
+            if i + 1 < len(tbs_children):
+                key_c2_raw = tbs_children[i + 1]["raw"]
+            break
+
+    if not key_c2_raw:
+        key_c2_raw = tbs_children[10]["raw"]
+
+    key_c2 = serialization.load_der_public_key(key_c2_raw)
+
+    # Sig alg rsassa-pss
+    sig_alg_children = parse_der_sequence(sig_alg_elem["raw"], 0)
+    if not sig_alg_children or len(sig_alg_children) < 2:
+        raise ValueError("Malformed cert1: sig_alg sequence invalid")
+
+    alg_oid = decode_oid(sig_alg_children[0]["value"])
+    pss_params = parse_der_sequence(sig_alg_children[1]["raw"], 0)
+    salt_len = None
+    if pss_params:
+        for p in pss_params:
+            if p["tag"] == 0xA2:
+                s_tlv = parse_der_tlv(p["value"], 0)
+                if s_tlv and s_tlv[0] == 0x02:
+                    salt_len = int.from_bytes(s_tlv[3], "big")
+
+    return {
+        "tbs_raw": tbs_raw,
+        "sig_bytes": sig_bytes,
+        "key_c1": key_c1,
+        "key_c2": key_c2,
+        "alg_oid": alg_oid,
+        "salt_len": salt_len,
+    }
+
+
+def parse_cert2_info(cert2_bytes: bytes) -> Dict[str, Any]:
+    """Dynamically parse MediaTek Content Certificate (cert2) via ASN.1 DER."""
+    c2_seq = parse_der_sequence(cert2_bytes, 0)
+    if not c2_seq or len(c2_seq) < 3:
+        raise ValueError("Malformed cert2: Expected SEQUENCE with 3 elements")
+    tbs_elem = c2_seq[0]
+    sig_alg_elem = c2_seq[1]
+    sig_elem = c2_seq[2]
+
+    if tbs_elem["tag"] != 0x30 or sig_alg_elem["tag"] != 0x30 or sig_elem["tag"] != 0x03:
+        raise ValueError("Malformed cert2: Top-level elements have unexpected tags")
+
+    tbs_raw = tbs_elem["raw"]
+    sig_raw = sig_elem["value"]
+    if len(sig_raw) < 2:
+        raise ValueError("Malformed cert2: Signature value too short")
+    sig_bytes = sig_raw[1:]  # Skip unused bit count byte
+
+    tbs_children = parse_der_sequence(tbs_raw, 0)
+    if not tbs_children or len(tbs_children) < 11:
+        raise ValueError("Malformed cert2: TBS sequence has insufficient children")
+
+    # Key C2 is at index 6 (SubjectPublicKeyInfo)
+    spki_c2_raw = tbs_children[6]["raw"]
+    key_c2 = serialization.load_der_public_key(spki_c2_raw)
+
+    # Payload digest is under OID 2.16.886.2454.2.1
+    digest_bytes = None
+    for i, child in enumerate(tbs_children):
+        if child["tag"] == 0x06 and decode_oid(child["value"]) == "2.16.886.2454.2.1":
+            if i + 1 < len(tbs_children):
+                val_child = tbs_children[i + 1]
+                if val_child["tag"] == 0x03 and len(val_child["value"]) >= 33:
+                    digest_bytes = val_child["value"][1:33]
+            break
+
+    # Sig alg rsassa-pss
+    sig_alg_children = parse_der_sequence(sig_alg_elem["raw"], 0)
+    if not sig_alg_children or len(sig_alg_children) < 2:
+        raise ValueError("Malformed cert2: sig_alg sequence invalid")
+
+    alg_oid = decode_oid(sig_alg_children[0]["value"])
+    pss_params = parse_der_sequence(sig_alg_children[1]["raw"], 0)
+    salt_len = None
+    if pss_params:
+        for p in pss_params:
+            if p["tag"] == 0xA2:
+                s_tlv = parse_der_tlv(p["value"], 0)
+                if s_tlv and s_tlv[0] == 0x02:
+                    salt_len = int.from_bytes(s_tlv[3], "big")
+
+    return {
+        "tbs_raw": tbs_raw,
+        "sig_bytes": sig_bytes,
+        "key_c2": key_c2,
+        "payload_digest": digest_bytes,
+        "alg_oid": alg_oid,
+        "salt_len": salt_len,
+    }
 
 
 def validate_lk_differential(
@@ -153,12 +398,26 @@ def validate_lk_differential(
     c49_p = loaded_bytes["c49_preloader"]
     c50_p = loaded_bytes["c50_preloader"]
 
+    # File bounds check: Ensure files are large enough for container and code analysis
+    if len(c49_lk) < MIN_LK_SIZE:
+        results["status"] = "FAIL"
+        results["failures"].append(f"Input file truncated: c49_lk size {len(c49_lk)} B is less than required {MIN_LK_SIZE} B")
+    if len(c50_lk) < MIN_LK_SIZE:
+        results["status"] = "FAIL"
+        results["failures"].append(f"Input file truncated: c50_lk size {len(c50_lk)} B is less than required {MIN_LK_SIZE} B")
+    if len(c49_p) < MIN_PRELOADER_C49_SIZE:
+        results["status"] = "FAIL"
+        results["failures"].append(f"Input file truncated: c49_preloader size {len(c49_p)} B is less than required {MIN_PRELOADER_C49_SIZE} B")
+    if len(c50_p) < MIN_PRELOADER_C50_SIZE:
+        results["status"] = "FAIL"
+        results["failures"].append(f"Input file truncated: c50_preloader size {len(c50_p)} B is less than required {MIN_PRELOADER_C50_SIZE} B")
+
     # -------------------------------------------------------------
     # 2. LK Diff Enumeration
     # -------------------------------------------------------------
     lk_ranges = find_diff_ranges(c49_lk, c50_lk)
     lk_clusters = cluster_ranges(lk_ranges, max_gap=16)
-    total_differing_bytes = sum(c49_lk[i] != c50_lk[i] for i in range(len(c49_lk)))
+    total_differing_bytes = safe_diff_count(c49_lk, c50_lk)
 
     results["lk_diff"] = {
         "total_differing_bytes": total_differing_bytes,
@@ -172,7 +431,7 @@ def validate_lk_differential(
                 "start": f"0x{s:06x}",
                 "end": f"0x{e:06x}",
                 "span": e - s,
-                "diff_count": sum(c49_lk[j] != c50_lk[j] for j in range(s, e)),
+                "diff_count": safe_diff_count(c49_lk, c50_lk, s, e),
             }
             for i, (s, e) in enumerate(lk_clusters)
         ],
@@ -187,43 +446,42 @@ def validate_lk_differential(
         results["failures"].append(f"LK diff cluster count mismatch: expected 3, got {len(lk_clusters)}")
 
     # -------------------------------------------------------------
-    # 3. MediaTek Container Header Validation
+    # 3. Symmetric MediaTek Container Header Validation
     # -------------------------------------------------------------
-    # In MTK prt_img_hdr:
-    # 0x00: magic (0x58881688), 0x04: dsize, 0x08: name (32 bytes), 0x30: ext_magic (0x58891689), 0x34: hdr_size
-    def parse_mtk_header(data: bytes, offset: int) -> Dict[str, Any]:
-        magic, dsize, name = struct.unpack("<II32s", data[offset : offset + 40])
-        ext_magic, hdr_size = struct.unpack("<II", data[offset + 48 : offset + 56])
-        clean_name = name.split(b"\x00")[0].decode("ascii", errors="replace")
-        return {
-            "offset": f"0x{offset:06x}",
-            "magic": f"0x{magic:08x}",
-            "ext_magic": f"0x{ext_magic:08x}",
-            "name": clean_name,
-            "dsize": dsize,
-            "dsize_hex": f"0x{dsize:x}",
-            "hdr_size": hdr_size,
-        }
+    h_lk_49 = parse_mtk_header(c49_lk, 0x000000)
+    h_cert1_49 = parse_mtk_header(c49_lk, 0x0B72D0)
+    h_cert2_49 = parse_mtk_header(c49_lk, 0x0B7B80)
 
-    h_lk = parse_mtk_header(c49_lk, 0x000000)
-    h_cert1 = parse_mtk_header(c49_lk, 0x0B72D0)
-    h_cert2 = parse_mtk_header(c49_lk, 0x0B7B80)
+    h_lk_50 = parse_mtk_header(c50_lk, 0x000000)
+    h_cert1_50 = parse_mtk_header(c50_lk, 0x0B72D0)
+    h_cert2_50 = parse_mtk_header(c50_lk, 0x0B7B80)
 
-    # Check header parameters
-    container_ok = (
-        h_lk["magic"] == "0x58881688"
-        and h_lk["ext_magic"] == "0x58891689"
-        and h_lk["name"] == "lk"
-        and h_lk["dsize"] == 749772
-        and h_cert1["name"] == "cert1"
-        and h_cert1["dsize"] == 1709
-        and h_cert2["name"] == "cert2"
-        and h_cert2["dsize"] == 945
-    )
+    def check_headers_ok(h_lk: Optional[Dict[str, Any]], h_c1: Optional[Dict[str, Any]], h_c2: Optional[Dict[str, Any]]) -> bool:
+        return (
+            h_lk is not None
+            and h_lk["magic"] == "0x58881688"
+            and h_lk["ext_magic"] == "0x58891689"
+            and h_lk["name"] == "lk"
+            and h_lk["dsize"] == 749772
+            and h_c1 is not None
+            and h_c1["magic"] == "0x58881688"
+            and h_c1["ext_magic"] == "0x58891689"
+            and h_c1["name"] == "cert1"
+            and h_c1["dsize"] == 1709
+            and h_c2 is not None
+            and h_c2["magic"] == "0x58881688"
+            and h_c2["ext_magic"] == "0x58891689"
+            and h_c2["name"] == "cert2"
+            and h_c2["dsize"] == 945
+        )
+
+    container_c49_ok = check_headers_ok(h_lk_49, h_cert1_49, h_cert2_49)
+    container_c50_ok = check_headers_ok(h_lk_50, h_cert1_50, h_cert2_50)
+    container_ok = container_c49_ok and container_c50_ok
 
     results["container_validation"] = {
         "valid": container_ok,
-        "headers": {"lk": h_lk, "cert1": h_cert1, "cert2": h_cert2},
+        "headers": {"lk": h_lk_49, "cert1": h_cert1_49, "cert2": h_cert2_49},
         "payload_intervals": {
             "lk_payload": "[0x000200, 0x0b72cc)",
             "lk_payload_padded_16b": "[0x000200, 0x0b72d0)",
@@ -247,13 +505,129 @@ def validate_lk_differential(
     calc_digest_c49 = hashlib.sha256(payload_c49).digest()
     calc_digest_c50 = hashlib.sha256(payload_c50).digest()
 
-    # In cert2 (starts at file 0x0B7D80):
-    # Cluster 2 spans [0x0B7F73, 0x0B7F93) (32 bytes)
     cert2_digest_c49 = c49_lk[0x0B7F73:0x0B7F93]
     cert2_digest_c50 = c50_lk[0x0B7F73:0x0B7F93]
 
-    digest_match_c49 = calc_digest_c49 == cert2_digest_c49
-    digest_match_c50 = calc_digest_c50 == cert2_digest_c50
+    digest_match_c49 = (len(payload_c49) == 749776) and (calc_digest_c49 == cert2_digest_c49)
+    digest_match_c50 = (len(payload_c50) == 749776) and (calc_digest_c50 == cert2_digest_c50)
+
+    # -------------------------------------------------------------
+    # 5. ASN.1 DER Certificate Parsing & Cryptographic Signatures
+    # -------------------------------------------------------------
+    cert1_bytes_49 = c49_lk[0x0B74D0:0x0B7B7D]
+    cert2_bytes_49 = c49_lk[0x0B7D80:0x0B8131]
+    cert1_bytes_50 = c50_lk[0x0B74D0:0x0B7B7D]
+    cert2_bytes_50 = c50_lk[0x0B7D80:0x0B8131]
+
+    cert1_self_signed = False
+    cert2_49_signed = False
+    cert2_50_signed = False
+    key_c2_match = False
+    salt_32_encoded = False
+    c1_mod_str = "N/A"
+    c2_mod_str = "N/A"
+    oem_mod_str = "N/A"
+    keys_distinct = False
+
+    try:
+        c1_info_49 = parse_cert1_info(cert1_bytes_49)
+        c1_info_50 = parse_cert1_info(cert1_bytes_50)
+        c2_info_49 = parse_cert2_info(cert2_bytes_49)
+        c2_info_50 = parse_cert2_info(cert2_bytes_50)
+
+        # Cross-verify ASN.1 decoded payload digests against calculated digests
+        if c2_info_49["payload_digest"] != calc_digest_c49:
+            digest_match_c49 = False
+            results["failures"].append("cert2 C.49 ASN.1 payload digest mismatch with calculated digest")
+        if c2_info_50["payload_digest"] != calc_digest_c50:
+            digest_match_c50 = False
+            results["failures"].append("cert2 C.50 ASN.1 payload digest mismatch with calculated digest")
+
+        key_c1_49 = c1_info_49["key_c1"]
+        key_c2_49_from_c1 = c1_info_49["key_c2"]
+        key_c2_49_from_c2 = c2_info_49["key_c2"]
+
+        key_c1_50 = c1_info_50["key_c1"]
+        key_c2_50_from_c1 = c1_info_50["key_c2"]
+        key_c2_50_from_c2 = c2_info_50["key_c2"]
+
+        # Check key C2 consistency across cert1 and cert2 for both C.49 and C.50
+        key_c2_match = (
+            key_c2_49_from_c1.public_numbers().n == key_c2_49_from_c2.public_numbers().n
+            and key_c2_50_from_c1.public_numbers().n == key_c2_50_from_c2.public_numbers().n
+            and key_c2_49_from_c1.public_numbers().n == key_c2_50_from_c1.public_numbers().n
+        )
+
+        salt_32_encoded = (
+            c1_info_49["salt_len"] == 32
+            and c2_info_49["salt_len"] == 32
+            and c1_info_50["salt_len"] == 32
+            and c2_info_50["salt_len"] == 32
+        )
+
+        # Verify cert1 self-signature (Key C1, RSASSA-PSS SHA-256)
+        try:
+            key_c1_49.verify(
+                c1_info_49["sig_bytes"],
+                c1_info_49["tbs_raw"],
+                padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=c1_info_49["salt_len"] or 32),
+                hashes.SHA256(),
+            )
+            key_c1_50.verify(
+                c1_info_50["sig_bytes"],
+                c1_info_50["tbs_raw"],
+                padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=c1_info_50["salt_len"] or 32),
+                hashes.SHA256(),
+            )
+            cert1_self_signed = True
+        except Exception as e:
+            cert1_self_signed = False
+            results["failures"].append(f"cert1 self-signature verification failed: {e}")
+
+        # Verify cert2 C.49 signature (Key C2, RSASSA-PSS SHA-256)
+        try:
+            key_c2_49_from_c1.verify(
+                c2_info_49["sig_bytes"],
+                c2_info_49["tbs_raw"],
+                padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=c2_info_49["salt_len"] or 32),
+                hashes.SHA256(),
+            )
+            cert2_49_signed = True
+        except Exception as e:
+            cert2_49_signed = False
+            results["failures"].append(f"cert2 C.49 signature verification failed: {e}")
+
+        # Verify cert2 C.50 signature (Key C2, RSASSA-PSS SHA-256)
+        try:
+            key_c2_50_from_c1.verify(
+                c2_info_50["sig_bytes"],
+                c2_info_50["tbs_raw"],
+                padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=c2_info_50["salt_len"] or 32),
+                hashes.SHA256(),
+            )
+            cert2_50_signed = True
+        except Exception as e:
+            cert2_50_signed = False
+            results["failures"].append(f"cert2 C.50 signature verification failed: {e}")
+
+        c1_mod = key_c1_49.public_numbers().n
+        c2_mod = key_c2_49_from_c1.public_numbers().n
+        c1_mod_str = hex(c1_mod)[:32] + "..."
+        c2_mod_str = hex(c2_mod)[:32] + "..."
+
+        # Inspect OEM token verification public key at file 0x7F048 (RAM 0x6007EE48)
+        if len(c49_lk) >= 0x07F048 + 256:
+            oem_mod_bytes = c49_lk[0x07F048 : 0x07F048 + 256]
+            oem_mod = int.from_bytes(oem_mod_bytes, byteorder="big")
+            oem_mod_str = hex(oem_mod)[:32] + "..."
+            keys_distinct = (c1_mod != c2_mod) and (c1_mod != oem_mod) and (c2_mod != oem_mod)
+        else:
+            keys_distinct = False
+            results["failures"].append("OEM unlock public key offset exceeds LK image bounds")
+
+    except Exception as e:
+        results["status"] = "FAIL"
+        results["failures"].append(f"ASN.1 certificate parsing or cryptographic validation failed: {e}")
 
     results["payload_digest_validation"] = {
         "hashed_interval": "[0x000200, 0x0b72d0)",
@@ -274,99 +648,10 @@ def validate_lk_differential(
         results["status"] = "FAIL"
         results["failures"].append("Payload digest does not match cert2 embedded digest")
 
-    # -------------------------------------------------------------
-    # 5. ASN.1 DER Certificate Parsing & Cryptographic Signatures
-    # -------------------------------------------------------------
-    # cert1: file interval [0x0B74D0, 0x0B7B7D) (1,709 bytes)
-    # cert2: file interval [0x0B7D80, 0x0B8131) (945 bytes)
-    cert1_bytes = c49_lk[0x0B74D0:0x0B7B7D]
-    cert2_bytes_49 = c49_lk[0x0B7D80:0x0B8131]
-    cert2_bytes_50 = c50_lk[0x0B7D80:0x0B8131]
-
-    # In cert1:
-    # Offset 181 (0xb5) has SubjectPublicKeyInfo (290 bytes sequence + 4 bytes header) -> Key C1
-    spki_c1 = cert1_bytes[181 : 181 + 4 + 290]
-    key_c1 = serialization.load_der_public_key(spki_c1)
-
-    # Offset 496 has SubjectPublicKeyInfo (290 bytes sequence + 4 bytes header) -> Key C2
-    spki_c2 = cert1_bytes[496 : 496 + 4 + 290]
-    key_c2_from_cert1 = serialization.load_der_public_key(spki_c2)
-
-    # In cert2:
-    # Offset 181 has SubjectPublicKeyInfo -> Key C2
-    spki_c2_cert2 = cert2_bytes_49[181 : 181 + 4 + 290]
-    key_c2_from_cert2 = serialization.load_der_public_key(spki_c2_cert2)
-
-    key_c2_match = key_c2_from_cert1.public_numbers().n == key_c2_from_cert2.public_numbers().n
-
-    # Check PSS parameters in cert2:
-    # Search for rsassaPss OID: 1.2.840.113549.1.1.10 (2a864886f70d01010a)
-    pss_oid = b"\x2a\x86\x48\x86\xf7\x0d\x01\x01\x0a"
-    pss_idx = cert2_bytes_49.find(pss_oid)
-    # After OID (9 bytes), SEQUENCE len (2 bytes), [0] hash (15 bytes), [1] mgf (28 bytes), [2] salt (3 bytes: a2 03 02 01 20)
-    salt_pos = cert2_bytes_49.find(b"\xa2\x03\x02\x01\x20", pss_idx)
-    salt_32_encoded = salt_pos != -1
-
-    # Verify signatures:
-    # In cert1: tbsCertificate is [4 : 4 + 4 + 1368] = [4 : 1376], sig is at [1448 + 4 + 1 : 1448 + 4 + 257]
-    tbs_c1 = cert1_bytes[4:1376]
-    sig_c1 = cert1_bytes[1453:1709]
-    cert1_self_signed = False
-    try:
-        key_c1.verify(
-            sig_c1,
-            tbs_c1,
-            padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32),
-            hashes.SHA256(),
-        )
-        cert1_self_signed = True
-    except Exception as e:
-        cert1_self_signed = False
-        results["failures"].append(f"cert1 self-signature verification failed: {e}")
-
-    # In cert2: tbsCertificate is [4 : 4 + 4 + 604] = [4 : 612], sig is at [684 + 4 + 1 : 684 + 4 + 257]
-    tbs_c2_49 = cert2_bytes_49[4:612]
-    sig_c2_49 = cert2_bytes_49[689:945]
-    cert2_49_signed = False
-    try:
-        key_c2_from_cert1.verify(
-            sig_c2_49,
-            tbs_c2_49,
-            padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32),
-            hashes.SHA256(),
-        )
-        cert2_49_signed = True
-    except Exception as e:
-        cert2_49_signed = False
-        results["failures"].append(f"cert2 C.49 signature verification failed: {e}")
-
-    tbs_c2_50 = cert2_bytes_50[4:612]
-    sig_c2_50 = cert2_bytes_50[689:945]
-    cert2_50_signed = False
-    try:
-        key_c2_from_cert1.verify(
-            sig_c2_50,
-            tbs_c2_50,
-            padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32),
-            hashes.SHA256(),
-        )
-        cert2_50_signed = True
-    except Exception as e:
-        cert2_50_signed = False
-        results["failures"].append(f"cert2 C.50 signature verification failed: {e}")
-
-    # Inspect OEM token verification public key at file 0x7F048 (RAM 0x6007EE48)
-    oem_mod_bytes = c49_lk[0x07F048 : 0x07F048 + 256]
-    oem_mod = int.from_bytes(oem_mod_bytes, byteorder="big")
-    c1_mod = key_c1.public_numbers().n
-    c2_mod = key_c2_from_cert1.public_numbers().n
-
-    keys_distinct = (c1_mod != c2_mod) and (c1_mod != oem_mod) and (c2_mod != oem_mod)
-
     results["certificate_validation"] = {
-        "key_c1_modulus_prefix": hex(c1_mod)[:32] + "...",
-        "key_c2_modulus_prefix": hex(c2_mod)[:32] + "...",
-        "oem_unlock_key_modulus_prefix": hex(oem_mod)[:32] + "...",
+        "key_c1_modulus_prefix": c1_mod_str,
+        "key_c2_modulus_prefix": c2_mod_str,
+        "oem_unlock_key_modulus_prefix": oem_mod_str,
         "key_c2_matches_between_cert1_and_cert2": key_c2_match,
         "encoded_pss_salt_length_32": salt_32_encoded,
         "cert1_self_signed_verified": cert1_self_signed,
@@ -381,14 +666,13 @@ def validate_lk_differential(
     # -------------------------------------------------------------
     # 6. Preloader Audit & Normalization
     # -------------------------------------------------------------
-    # C.50 preloader has 2048-byte EMMC_BOOT header
-    p50_header_has_emmc = c50_p[:9] == b"EMMC_BOOT"
-    c50_p_stripped = c50_p[2048:]
+    p50_header_has_emmc = len(c50_p) >= 2048 and c50_p[:9] == b"EMMC_BOOT"
+    c50_p_stripped = c50_p[2048:] if len(c50_p) >= 2048 else b""
     p_len_match = len(c49_p) == len(c50_p_stripped)
 
     p_ranges = find_diff_ranges(c49_p, c50_p_stripped)
     p_clusters = cluster_ranges(p_ranges, max_gap=16)
-    p_differing_bytes = sum(c49_p[i] != c50_p_stripped[i] for i in range(len(c49_p)))
+    p_differing_bytes = safe_diff_count(c49_p, c50_p_stripped)
 
     # Verify that all preloader diffs are strictly in metadata string regions or signature block:
     # String regions: [0x325A5, 0x39400)
@@ -418,19 +702,26 @@ def validate_lk_differential(
     # 7. Fastboot Gating Routines & String Table Validation
     # -------------------------------------------------------------
     # verify_unlock_token: file interval [0x02ED00, 0x02EFCC) (716 bytes)
-    vut_c49 = c49_lk[0x02ED00:0x02EFCC]
-    vut_c50 = c50_lk[0x02ED00:0x02EFCC]
-    vut_match = vut_c49 == vut_c50
+    vut_c49 = c49_lk[0x02ED00:0x02EFCC] if len(c49_lk) >= 0x02EFCC else b""
+    vut_c50 = c50_lk[0x02ED00:0x02EFCC] if len(c50_lk) >= 0x02EFCC else b""
+    vut_match = (len(vut_c49) == 716) and (vut_c49 == vut_c50)
 
     # fastboot_init: file interval [0x030218, 0x030828) (1,552 bytes)
-    fb_c49 = c49_lk[0x030218:0x030828]
-    fb_c50 = c50_lk[0x030218:0x030828]
-    fb_match = fb_c49 == fb_c50
+    fb_c49 = c49_lk[0x030218:0x030828] if len(c49_lk) >= 0x030828 else b""
+    fb_c50 = c50_lk[0x030218:0x030828] if len(c50_lk) >= 0x030828 else b""
+    fb_match = (len(fb_c49) == 1552) and (fb_c49 == fb_c50)
 
     # Disassemble and check call instructions in verify_unlock_token
-    md = capstone.Cs(capstone.CS_ARCH_ARM, capstone.CS_MODE_THUMB)
-    vut_insns = list(md.disasm(vut_c49, 0x6002EB00))
-    fb_insns = list(md.disasm(fb_c49, 0x60030018))
+    vut_insn_count = 0
+    fb_insn_count = 0
+    try:
+        md = capstone.Cs(capstone.CS_ARCH_ARM, capstone.CS_MODE_THUMB)
+        vut_insns = list(md.disasm(vut_c49, 0x6002EB00))
+        fb_insns = list(md.disasm(fb_c49, 0x60030018))
+        vut_insn_count = len(vut_insns)
+        fb_insn_count = len(fb_insns)
+    except Exception as e:
+        results["failures"].append(f"Capstone disassembly failed: {e}")
 
     # String presence checks:
     has_verify_c49 = b"fastboot_unlock_verify" in c49_lk
@@ -449,11 +740,11 @@ def validate_lk_differential(
         "verify_unlock_token_interval": "[0x02ed00, 0x02efcc)",
         "verify_unlock_token_len": len(vut_c49),
         "verify_unlock_token_identical": vut_match,
-        "verify_unlock_token_instruction_count": len(vut_insns),
+        "verify_unlock_token_instruction_count": vut_insn_count,
         "fastboot_init_interval": "[0x030218, 0x030828)",
         "fastboot_init_len": len(fb_c49),
         "fastboot_init_identical": fb_match,
-        "fastboot_init_instruction_count": len(fb_insns),
+        "fastboot_init_instruction_count": fb_insn_count,
         "string_fastboot_unlock_verify_in_c49": has_verify_c49,
         "string_fastboot_unlock_verify_in_c50": has_verify_c50,
         "string_fastboot_unlock_verity_in_c49": has_verity_c49,
@@ -461,7 +752,7 @@ def validate_lk_differential(
         "strings_valid": strings_valid,
     }
 
-    if not (vut_match and fb_match and strings_valid):
+    if not (vut_match and fb_match and strings_valid and vut_insn_count == 274 and fb_insn_count == 640):
         results["status"] = "FAIL"
         results["failures"].append("Code or string table validation failed")
 

@@ -24,10 +24,21 @@
 | **P004** | C.49 findings audit & software-only prerequisite matrix | **DONE** | C001 | Phase 4 |
 | **D004** | C.50 Little Kernel differential analysis & cert2 dissection | **DONE** | P004 | Phase 4 |
 | **V002** | Independent validation of LK differential analysis & test suite | **DONE** | D004 | Phase 5 |
+| **V003** | Independent Python validator code review & regression hardening | **DONE** | V002 | Phase 5 |
 
 ---
 
 ## Phase 5 Task Details
+
+### V003: Independent Python Validator Code Review & Regression Hardening
+- **Status:** DONE
+- **Objective:** Exhaustively review `scripts/validate_lk_differential.py` for software quality, bounds safety, dynamic ASN.1 DER parsing, symmetric validation, and test correctness. Add extensive negative regression tests using temporary files to confirm rejection of truncated inputs, malformed headers, modified digests, invalid signatures, and code mutations without unhandled crashes. Verify test suite defect-sensitivity under deliberate logic breakage.
+- **Required Inputs:** `scripts/validate_lk_differential.py`, `tests/test_differential_validator.py`, `artifacts/c50_differential_validation.md`, `artifacts/c50_differential_validation.json`.
+- **Actions Performed:** Identified 7 confirmed defects: (1) unhandled `IndexError` on unequal file lengths during diff calculations; (2) absence of file size and bounds checks; (3) asymmetric container and SPKI validation (only validating C.49); (4) hardcoded byte offsets for ASN.1 DER certificate fields; (5) hardcoded file slice for payload digest comparison; (6) unhandled `ValueError` exceptions during public key and DER loading; (7) absence of negative test fixtures. Implemented lightweight, pure-Python ASN.1 DER TLV parser (`parse_der_tlv`, `parse_der_sequence`, `decode_oid`), dynamic certificate parsers (`parse_cert1_info`, `parse_cert2_info`), bounds-safe diff counter (`safe_diff_count`), and symmetric validation for both C.49 and C.50. Added 19 comprehensive unit tests in `tests/test_differential_validator.py` (total repository tests increased from 17 to 36, all passing). Verified test suite fails when validation logic is deliberately broken in a test fixture and via mutation testing. Regenerated validation artifacts with zero unexpected diffs.
+- **Evidence & Artifact References:** `scripts/validate_lk_differential.py`, `tests/test_differential_validator.py`, `artifacts/c50_differential_validation.md`, `artifacts/c50_differential_validation.json`.
+- **Result & Confidence Level:** Complete, 100% confidence.
+
+---
 
 ### V002: Independent Validation of LK Differential Analysis & Test Suite
 - **Status:** DONE
