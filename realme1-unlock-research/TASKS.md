@@ -26,6 +26,41 @@
 | **V002** | Independent validation of LK differential analysis & test suite | **DONE** | D004 | Phase 5 |
 | **V003** | Independent Python validator code review & regression hardening | **DONE** | V002 | Phase 5 |
 | **R005** | Preloader USB architecture, command dispatch & unlock feasibility | **DONE** | V003 | Phase 6 |
+| **P005** | Establish authorization protocol & RSASSA-PSS cryptographic verification | **DONE** | R005 | Phase 7 |
+| **P006** | Map alternative unlock paths across Fastboot, Recovery, and Preloader | **DONE** | P005 | Phase 7 |
+| **P007** | Assess security-relevant findings & candidate bypass hypotheses | **DONE** | P006 | Phase 7 |
+
+---
+
+## Phase 7 Task Details
+
+### P005: Establish Authorization Protocol & RSASSA-PSS Cryptographic Verification
+- **Status:** DONE
+- **Objective:** Independently verify the boundaries, data structures, and control flow of `verify_unlock_token()` (RAM `0x6002EB00`–`0x6002EDCC`) and `fastboot_init()` (RAM `0x60030018`–`0x60030628`). Trace token storage at `reserve4` sector `0x7816`, eFUSE serial retrieval via `devinfo`, SHA-256 digest calculation over 16-byte serial, RSASSA-PSS SHA-256 signature algorithm parameters (salt 32, trailer `0xBC`), and OEM public key modulus at RAM `0x6007EE48`. Distinguish token verification from MediaTek Secure Boot v2 and AVB.
+- **Required Inputs:** `~/Realme1/C49_extracted/lk.img`, `~/Realme1/C50_research/c50_static/lk.img`, `17065-efuse_oppo6771.xml`.
+- **Actions Performed:** Verified boundaries, disassembled inner loop and RFC 8017 PSS verifier (`0x600567C0`), confirmed code identity across C.49 and C.50 (`c1fa1a7d7cf6627d8beba0dd9614e1949780fdcf4e0f3918f900617295b6a63c`), developed deterministic analysis script `scripts/analyze_authorization_protocol.py` and unit tests in `tests/test_authorization_protocol.py`, produced artifact `artifacts/authorization_protocol.md` (`ART-012`).
+- **Evidence & Artifact References:** `artifacts/authorization_protocol.md` (ART-012), `scripts/analyze_authorization_protocol.py`, `tests/test_authorization_protocol.py`.
+- **Result & Confidence Level:** Complete, 100% confidence.
+
+---
+
+### P006: Map Alternative Unlock Paths Across Fastboot, Recovery, and Preloader
+- **Status:** DONE
+- **Objective:** Statically inventory all candidate alternative unlock paths across Little Kernel, stock Recovery, and Preloader. Inventory Fastboot command table, trace `cmd_flashing_unlock` and `cmd_flashing_lock`, decompress and audit `recovery.img` ramdisk (`sbin/recovery`), and evaluate Preloader USB CDC ACM interface (`0e8d:2000`) and engineering interfaces (`oem usb2jtag`, `oem scp_*`, `oem ultraflash:`).
+- **Required Inputs:** `~/Realme1/C49_extracted/lk.img`, `~/Realme1/C49_extracted/recovery.img`, `preloader_oppo6771_17065.bin`.
+- **Actions Performed:** Mapped 21 Fastboot commands; proved all commands require passing token verification before registration; analyzed `flashing unlock` FRP partition gating; decompressed recovery ramdisk and confirmed `sbin/recovery` has zero token/unlock capabilities; evaluated Preloader USB SLA challenge-response and engineering commands; produced artifact `artifacts/alternative_unlock_paths.md` (`ART-013`).
+- **Evidence & Artifact References:** `artifacts/alternative_unlock_paths.md` (ART-013).
+- **Result & Confidence Level:** Complete, 100% confidence.
+
+---
+
+### P007: Assess Security-Relevant Findings & Candidate Bypass Hypotheses
+- **Status:** DONE
+- **Objective:** Systematically audit eight candidate security hypotheses and potential bypass vectors (DeepTesting backend simulation, `fastboot_unlock_verity` string discrepancy, Preloader crash payloads, FRP flag toggling, token replay, weak digest/RSA flaws, stock recovery flaws, unauthenticated preloader commands). Evaluate against exact binary disassembly, preconditions, and plausibility.
+- **Required Inputs:** ART-012, ART-013, `scripts/analyze_authorization_protocol.py`, test suite results.
+- **Actions Performed:** Evaluated all 8 vectors; classified 6 as Refuted (mathematically sound or orthogonal), 2 as Confirmed Blocked in Software; demonstrated that no non-destructive software-only bypass exists on factory C.50 firmware; produced artifact `artifacts/security_findings.md` (`ART-014`).
+- **Evidence & Artifact References:** `artifacts/security_findings.md` (ART-014).
+- **Result & Confidence Level:** Complete, 100% confidence.
 
 ---
 

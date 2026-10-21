@@ -2,12 +2,12 @@
 
 ## Authoritative Progress Indicator
 
-- **Project Status:** ACTIVE RESEARCH / PHASE 6 PRELOADER USB ARCHITECTURE & BOOT-CHAIN SYNTHESIS COMPLETE
-- **Current Phase:** Phase 6: Preloader USB Architecture & Boot-Chain Synthesis
-- **Current Task ID & Description:** R005: Preloader USB architecture, command dispatch & unlock feasibility
-- **Overall Completion Estimate:** 100% of Phase 1 through Phase 6 research deliverables
-- **Last Completed Milestone:** Static reverse engineering and architectural synthesis of MediaTek MT6771 Preloader USB CDC ACM interface (`0e8d:2000`), command dispatch state machine (`bldr_handshake`, `usbdl_send_da`, `usbdl_vfy_da`, `usbdl_jump_da`), emergency BootROM reset trigger (`0x0371F4`), and security policies (`sboot_state.c`, `sec.c`, `sec_auth.c`, `partition.c`). Established definitive epistemic evidence matrix and verified that software-only bootloader unlock is blocked across all standard software entry points on factory C.50 firmware. Produced `artifacts/preloader_usb_architecture_and_feasibility.md` (`ART-011`).
-- **Formal Project Outcome:** **`NO VIABLE SOFTWARE-ONLY UNLOCK ROUTE FOUND`** (live C.50 device enforces identical token verification gating; bootloader code is 100% identical between C.49 and C.50).
+- **Project Status:** ACTIVE RESEARCH / PHASE 7 BOOTLOADER AUTHORIZATION REVERSE ENGINEERING COMPLETE
+- **Current Phase:** Phase 7: Bootloader Authorization Reverse Engineering & Path Audit
+- **Current Task ID & Description:** P007: Assess security-relevant findings & candidate bypass hypotheses
+- **Overall Completion Estimate:** 100% of Phase 1 through Phase 7 research deliverables
+- **Last Completed Milestone:** Exhaustive reverse engineering of the bootloader authorization mechanism (`verify_unlock_token`), static inventory of 21 Fastboot commands, recovery ramdisk audit, and systematic evaluation of 8 candidate bypass hypotheses. Mathematically verified that `verify_unlock_token()` enforces RFC 8017 RSASSA-PSS SHA-256 with salt length 32 and trailer field `0xBC`, hashing strictly the 16-byte SoC eFUSE serial number. Produced `artifacts/authorization_protocol.md` (`ART-012`), `artifacts/alternative_unlock_paths.md` (`ART-013`), `artifacts/security_findings.md` (`ART-014`), and verification tool `scripts/analyze_authorization_protocol.py` (41/41 repository unit tests passing).
+- **Formal Project Outcome:** **`NO VIABLE SOFTWARE-ONLY UNLOCK ROUTE FOUND`** (live C.50 device enforces identical token verification gating; bootloader code is 100% identical between C.49 and C.50; RSASSA-PSS signature binds token directly to SoC eFUSE serial).
 - **Primary Technical Findings (Audited & Verified):**
   1. **Token Storage Coordinates:** `verify_unlock_token()` (`0x6002EB00`) calls `read_reserve4` (`0x6002C794`), which adds base sector `0x7800` to argument `0x16`, establishing the actual token location as **sector `0x7816`** (`0x00F02C00` bytes into partition `reserve4`). Read length is 8 sectors (4,096 bytes).
   2. **Serial & Signature Checks:** Compares 16 bytes of SoC efuse serial via `memcmp` against the token buffer (`sp + 0x688`). Validates a 256-byte RSA-2048 PKCS#1 v1.5 signature with SHA-256 against an OEM public key modulus embedded in `.rodata` at RAM **`0x6007EE48`** (file offset `0x7F048`).
@@ -19,12 +19,15 @@
   8. **Preloader Code Identity:** C.49 and C.50 Preloaders are 100% code-identical after normalizing the 2,048-byte `EMMC_BOOT` header.
   9. **CPH1861 Variant Safety Warning:** C.50 firmware is an `oppo6771_17065` codebase historically targeted for CPH1861. It must not be assumed safe to flash onto CPH1859, preserving the project's non-invasive read-only policy.
 - **Next Three Actions (Prioritized):**
-  1. Review Preloader USB architecture findings and software-only unlock feasibility report in `artifacts/preloader_usb_architecture_and_feasibility.md` (ART-011).
-  2. Source and decompile historical ColorOS 5/6 `com.coloros.deeptesting.apk` to investigate client-side token structures.
+  1. Review bootloader authorization protocol findings in `artifacts/authorization_protocol.md` (ART-012), alternative paths in `artifacts/alternative_unlock_paths.md` (ART-013), and security findings in `artifacts/security_findings.md` (ART-014).
+  2. Source historical ColorOS 5.2/6.0 `com.coloros.deeptesting.apk` to investigate client-side token serialization schemas.
   3. Maintain strictly non-invasive, read-only posture on the target device.
-- **Last Updated:** 2026-10-21T16:22:00+05:30
+- **Last Updated:** 2026-10-21T16:45:00+05:30
 - **Current Git Branch:** main
 - **Relevant Artifact Paths:**
+  - `realme1-unlock-research/artifacts/authorization_protocol.md` (ART-012)
+  - `realme1-unlock-research/artifacts/alternative_unlock_paths.md` (ART-013)
+  - `realme1-unlock-research/artifacts/security_findings.md` (ART-014)
   - `realme1-unlock-research/artifacts/preloader_usb_architecture_and_feasibility.md` (ART-011)
   - `realme1-unlock-research/artifacts/c50_differential_validation.md` (ART-009)
   - `realme1-unlock-research/artifacts/c50_differential_validation.json` (ART-010)

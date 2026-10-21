@@ -200,3 +200,45 @@
   6. **Token-Gating & Strings:** Disassembled and verified `verify_unlock_token` and `fastboot_init` are 100% byte-identical. Confirmed string `fastboot_unlock_verify` exists in both and `fastboot_unlock_verity` is completely absent.
   7. **Automated Unit Testing:** Created `tests/test_differential_validator.py` with 4 test cases. Full suite passes cleanly (17/17 tests).
   8. **Generated Artifacts:** `artifacts/c50_differential_validation.md` (ART-009) and `artifacts/c50_differential_validation.json` (ART-010).
+
+---
+
+## 2026-10-21 - Phase 6: Preloader USB Architecture & Feasibility Assessment
+
+- **Context:** Reverse-engineered the Preloader USB CDC ACM interface (`0e8d:2000`) and command dispatch pathways in `preloader_oppo6771_17065.bin` and `preloader_emmc.img`.
+- **Commands Executed:**
+  ```bash
+  # Disassemble Preloader GFH, entry vectors, and USB download routines
+  python3 scratch/disasm_preloader.py
+  # Execute regression test suite
+  PYTHONPATH=src:scripts python3 -m unittest discover -s tests -v
+  ```
+- **Observed Findings:**
+  1. Decoded GFH Header Type 0: Flash device `0x5050001` (eMMC), SRAM load address `0x00200F10`, entry `0x00201000`. Vector reset branch at `0xF4` -> `0x110` in ARM state, mode switch to Thumb-2 at `0x0021C971` (`0x1BA60` into payload).
+  2. Preloader USB state machine: `bldr_handshake` -> `usbdl_send_da` -> `usbdl_vfy_da` -> `usbdl_jump_da`.
+  3. Evaluated SLA enforcement in `sec_auth.c` and `sboot_state.c` (`sbc_en = 1`), confirming that unauthenticated DA execution is blocked.
+  4. Located emergency Watchdog BootROM reset trigger at `0x0371F4` (`Preloader going reset and trigger BROM usb auto detectiton!!`).
+  5. Produced research artifact `artifacts/preloader_usb_architecture_and_feasibility.md` (`ART-011`).
+
+---
+
+## 2026-10-21 - Phase 7: Bootloader Authorization Mechanism & Alternative Paths Reverse Engineering
+
+- **Context:** Exhaustive reverse engineering of the bootloader authorization mechanism, static inventory of alternative paths across Fastboot, Recovery, and Preloader, and systematic security audit.
+- **Commands Executed:**
+  ```bash
+  # Disassemble verify_unlock_token and trace RFC 8017 PSS verifier
+  python3 scripts/analyze_authorization_protocol.py
+  # Decompress recovery ramdisk and inspect sbin/recovery
+  python3 -c "import struct, gzip; ..."
+  # Run updated unit test suite (41 tests)
+  PYTHONPATH=src:scripts python3 -m unittest discover -s tests -v
+  ```
+- **Observed Findings:**
+  1. **Exact Verifier Control Flow:** `verify_unlock_token()` (RAM `0x6002EB00`–`0x6002EDCC`, 716 B) reads sector `0x7816` of `reserve4` via `read_reserve4` (`0x6002C794` adds `0x7800` base to `0x16`). Code is 100% byte-identical between C.49 and C.50 (`c1fa1a7d7cf6...`).
+  2. **Token Format:** Offset `+0x000` (256 bytes) is the signature; offset `+0x100` (16 bytes) is the SoC serial number in ASCII hex (with a leading `'0'` + 15 bytes fallback).
+  3. **Cryptographic Algorithm:** Verifier `0x600567C0` enforces mathematically standard **RSASSA-PSS SHA-256** (RFC 8017 Section 9.1.2) with MGF1(SHA-256), salt length 32 (`0x20`), and trailer field `0xBC`. Modulus is 2048-bit OEM key at RAM `0x6007EE48`.
+  4. **Fastboot Gating:** `fastboot_init()` calls verifier at `0x60030046`. On failure, prints `"fastboot_unlock_verify fail\n\n"` and immediately executes `[WDT] mtk_arch_reset(1)` (writing `0x1971` to register `0x10007000`). All 21 Fastboot commands are registered strictly post-verification.
+  5. **Fastboot Commands & Recovery:** Statically inventoried all 21 commands. `oem unlock` is absent. `flashing unlock` requires `frp` partition flag and interactive user prompt. Stock recovery (`sbin/recovery`) contains zero unlock logic or partition editing capabilities.
+  6. **Security Audit:** Audited 8 candidate hypotheses; classified 6 as Refuted (sound or orthogonal), 2 as Confirmed Blocked in Software.
+  7. **Deliverables:** Produced `artifacts/authorization_protocol.md` (ART-012), `artifacts/alternative_unlock_paths.md` (ART-013), `artifacts/security_findings.md` (ART-014), `scripts/analyze_authorization_protocol.py`, and `tests/test_authorization_protocol.py` (41/41 tests passing).
