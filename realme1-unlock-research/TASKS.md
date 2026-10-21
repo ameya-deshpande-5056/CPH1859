@@ -32,6 +32,7 @@
 | **P008** | Reconcile evidence, provenance, and preloader uncertainty | **DONE** | P007 | Phase 8 |
 | **P009** | Resolve LK/PSS data flow, preloader DA-call uncertainty, and emergency reset reachability | **DONE** | P008 | Phase 9 |
 | **P010** | Reverse-engineer decompiled DeepTesting APK and map end-to-end token handoff | **DONE** | P009 | Phase 10 |
+| **AUDIT-001** | Comprehensive read-only firmware/userspace/kernel/boot-chain audit and deliverables | **DONE** | P010 | Audit |
 
 ---
 
@@ -40,7 +41,7 @@
 ### P005: Establish Authorization Protocol & RSASSA-PSS Cryptographic Verification
 - **Status:** DONE
 - **Objective:** Independently verify the boundaries, data structures, and control flow of `verify_unlock_token()` (RAM `0x6002EB00`–`0x6002EDCC`) and `fastboot_init()` (RAM `0x60030018`–`0x60030628`). Trace token storage at `reserve4` sector `0x7816`, eFUSE serial retrieval via `devinfo`, SHA-256 digest calculation over 16-byte serial, RSASSA-PSS SHA-256 signature algorithm parameters (salt 32, trailer `0xBC`), and OEM public key modulus at RAM `0x6007EE48`. Distinguish token verification from MediaTek Secure Boot v2 and AVB.
-- **Required Inputs:** `~/Realme1/C49_extracted/lk.img`, `~/Realme1/C50_research/c50_static/lk.img`, `17065-efuse_oppo6771.xml`.
+- **Required Inputs:** `~/Realme1/C49_extracted/lk.img`, `~/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t/lk.img`, `17065-efuse_oppo6771.xml`.
 - **Actions Performed:** Verified boundaries, disassembled inner loop and RFC 8017 PSS verifier (`0x600567C0`), confirmed code identity across C.49 and C.50 (`c1fa1a7d7cf6627d8beba0dd9614e1949780fdcf4e0f3918f900617295b6a63c`), developed deterministic analysis script `scripts/analyze_authorization_protocol.py` and unit tests in `tests/test_authorization_protocol.py`, produced artifact `artifacts/authorization_protocol.md` (`ART-012`).
 - **Evidence & Artifact References:** `artifacts/authorization_protocol.md` (ART-012), `scripts/analyze_authorization_protocol.py`, `tests/test_authorization_protocol.py`.
 - **Result & Confidence Level:** Complete, 100% confidence.
@@ -90,7 +91,7 @@
 ### R005: Preloader USB Architecture, Command Dispatch & Unlock Feasibility
 - **Status:** DONE
 - **Objective:** Perform static, read-only reverse engineering on MediaTek MT6771 Preloader binaries (`preloader_oppo6771_17065.bin` and `preloader_emmc.img`). Map GFH header, source modules, USB CDC ACM interface (`0e8d:2000`), command-dispatch routines (`bldr_handshake`, `usbdl_send_da`, `usbdl_vfy_da`, `usbdl_jump_da`), state transitions, and security policies (`sboot_state.c`, `sec.c`, `sec_auth.c`, `partition.c`). Synthesize findings across Little Kernel, Preloader, and Fastboot initialization to assess software-only bootloader unlock feasibility and identify precise non-invasive evidence gaps.
-- **Required Inputs:** `~/Realme1/C49_extracted/preloader_oppo6771_17065.bin`, `~/Realme1/C50_research/c50_static/preloader_emmc.img`, `~/Realme1/C49_extracted/lk.img`, `~/Realme1/C50_research/c50_static/lk.img`.
+- **Required Inputs:** `~/Realme1/C49_extracted/preloader_oppo6771_17065.bin`, `~/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t/preloader_emmc.img`, `~/Realme1/C49_extracted/lk.img`, `~/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t/lk.img`.
 - **Actions Performed:** Verified GFH Header Type 0 structure (`0x5050001` eMMC, SRAM load address `0x00200F10`, entry `0x00201000`); identified source module paths; decoded USB state machine and command-dispatch pathways; analyzed Download Agent verification logic (`usbdl_vfy_da:disabled` with hardware SLA enforcement in `sec_auth.c`); confirmed Watchdog emergency BootROM trigger (`0x0371F4`); documented Fastboot Watchdog reset mechanism (`0x6000CD30` writing `0x1971` to `0x10007000`); verified CPH1859 vs CPH1861 model codebase relationships; formulated comprehensive epistemic evidence table (confirmed/inferred/unknown); produced research artifact `artifacts/preloader_usb_architecture_and_feasibility.md` (`ART-011`).
 - **Evidence & Artifact References:** `artifacts/preloader_usb_architecture_and_feasibility.md` (ART-011).
 - **Result & Confidence Level:** Complete, 100% confidence.
@@ -112,7 +113,7 @@
 ### V002: Independent Validation of LK Differential Analysis & Test Suite
 - **Status:** DONE
 - **Objective:** Independently validate the C.49/C.50 Little Kernel and Preloader differential findings using a deterministic, reproducible validation toolchain. Verify file hashes, 315-byte diff enumeration, MediaTek container headers, exact payload hash intervals (`[0x000200, 0x0B72D0)`), ASN.1 DER certificate fields, RSASSA-PSS SHA-256 signatures with 32-byte salt, preloader normalization, and code identity of token-gating routines.
-- **Required Inputs:** `~/Realme1/C49_extracted/lk.img`, `~/Realme1/C50_research/c50_static/lk.img`, `preloader_oppo6771_17065.bin`, `preloader_emmc.img`.
+- **Required Inputs:** `~/Realme1/C49_extracted/lk.img`, `~/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t/lk.img`, `preloader_oppo6771_17065.bin`, `preloader_emmc.img`.
 - **Actions Performed:** Developed `scripts/validate_lk_differential.py`; verified all 4 whole-file hashes; verified LK diff is exactly 315 bytes across 3 clusters in half-open notation (`[0x07EA23, 0x07EA48)`, `[0x0B7F73, 0x0B7F93)`, `[0x0B8031, 0x0B8131)`); confirmed `cert1` and `cert2` ASN.1 DER fields, OIDs, and PSS parameters (salt length 32); cryptographically verified `cert1` self-signature and `cert2` signatures in C.49 and C.50; confirmed OEM unlock token public key modulus (`0x6007EE48`) is distinct; verified Preloader normalization (2,048-byte `EMMC_BOOT` header) and confirmed all 569 diffs are in metadata strings and signature block; verified `verify_unlock_token` and `fastboot_init` are 100% byte-identical; confirmed `fastboot_unlock_verify` exists in both and `verity` is absent; developed 4 unit tests in `tests/test_differential_validator.py` (all 17 tests passing); produced artifacts `artifacts/c50_differential_validation.json` (ART-010) and `artifacts/c50_differential_validation.md` (ART-009).
 - **Evidence & Artifact References:** `artifacts/c50_differential_validation.md`, `artifacts/c50_differential_validation.json`, `scripts/validate_lk_differential.py`.
 - **Result & Confidence Level:** Complete, 100% confidence.
@@ -124,7 +125,7 @@
 ### D004: C.50 Little Kernel Differential Analysis & cert2 Dissection
 - **Status:** DONE
 - **Objective:** Perform exhaustive differential reverse engineering between C.49 `lk.img` and C.50 `lk.img`. Establish complete function boundaries for `verify_unlock_token()` and `fastboot_init()`, compare call graphs, parse and verify the ASN.1 DER structure of `cert2` (file offsets `0xB7B80`–`0xB8131`), verify code/data references across LK, and definitively resolve the `verify` vs `verity` string discrepancy.
-- **Required Inputs:** `~/Realme1/C49_extracted/lk.img`, `~/Realme1/C50_research/c50_static/lk.img`, `preloader_emmc.img`.
+- **Required Inputs:** `~/Realme1/C49_extracted/lk.img`, `~/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t/lk.img`, `preloader_emmc.img`.
 - **Actions Performed:** Executed full 753,984-byte binary diff (found exactly 315 changed bytes in 3 clusters); disassembled and traced `verify_unlock_token()` (`0x6002EB00`–`0x6002EDCC`, 716 bytes) and `fastboot_init()` (`0x60030018`–`0x60030628`, 1,552 bytes), confirming 100% byte-identity across code, basic blocks, literal pools, and all 44 call targets; decoded ASN.1 DER structure of `cert2` via OpenSSL and Python `cryptography`, proving Cluster 2 (`0xB7F73`) is the exact SHA-256 hash of LK payload (`0x200`–`0xB72D0`) and Cluster 3 (`0xB8031`) is the RSASSA-PSS SHA-256 signature signed by intermediate key `Key C2`; verified zero references from LK code to `cert2`; searched string tables proving `fastboot_unlock_verity` is absent from all firmware and both C.49 and C.50 execute `fastboot_unlock_verify fail\n\n` at `0x080BFC`; compared preloaders proving code identity; generated research artifact `artifacts/c50_differential_analysis.md` (ART-008).
 - **Evidence & Artifact References:** `artifacts/c50_differential_analysis.md`, `DECISIONS.md`.
 - **Result & Confidence Level:** Complete, 100% confidence.

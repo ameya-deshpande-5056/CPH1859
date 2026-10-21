@@ -10,7 +10,7 @@
       "match": true
     },
     "c50_lk": {
-      "path": "/home/ameya/Realme1/C50_research/c50_static/lk.img",
+      "path": "/home/ameya/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t/lk.img",
       "size": 753984,
       "sha256": "58cd19a9647610146f07bcf2ad5a1b0cd3056ce967c784bb37ea347669f5e563",
       "expected_sha256": "58cd19a9647610146f07bcf2ad5a1b0cd3056ce967c784bb37ea347669f5e563",
@@ -24,7 +24,7 @@
       "match": true
     },
     "c50_preloader": {
-      "path": "/home/ameya/Realme1/C50_research/c50_static/preloader_emmc.img",
+      "path": "/home/ameya/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t/preloader_emmc.img",
       "size": 267804,
       "sha256": "2de60eda847de8ea3ae44368fc905f57dd63a842a3c7ad455f0fd1c326ebaeca",
       "expected_sha256": "2de60eda847de8ea3ae44368fc905f57dd63a842a3c7ad455f0fd1c326ebaeca",

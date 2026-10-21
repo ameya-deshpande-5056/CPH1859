@@ -7,13 +7,13 @@
 - **C.49 Little Kernel:** `/home/ameya/Realme1/C49_extracted/lk.img`  
   - Size: 753,984 bytes  
   - SHA-256: `30b48cd52b5d6035819c5580eb4a7f745010042318d1358b46a4f9fd5a37baaa`
-- **C.50 Little Kernel:** `/home/ameya/Realme1/C50_research/c50_static/lk.img`  
+- **C.50 Little Kernel:** `/home/ameya/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t/lk.img`
   - Size: 753,984 bytes  
   - SHA-256: `58cd19a9647610146f07bcf2ad5a1b0cd3056ce967c784bb37ea347669f5e563`
 - **C.49 Preloader:** `/home/ameya/Realme1/C49_extracted/preloader_oppo6771_17065.bin`  
   - Size: 265,756 bytes  
   - SHA-256: `afe99890545f60ebb04158d7d327369237ea20241218c35f01f272b94ad1ee1a`
-- **C.50 Preloader:** `/home/ameya/Realme1/C50_research/c50_static/preloader_emmc.img`  
+- **C.50 Preloader:** `/home/ameya/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t/preloader_emmc.img`
   - Size: 267,804 bytes (265,756 bytes payload prefixed with 2,048-byte `EMMC_BOOT` header)  
   - SHA-256: `2de60eda847de8ea3ae44368fc905f57dd63a842a3c7ad455f0fd1c326ebaeca`
 

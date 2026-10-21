@@ -34,9 +34,12 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 # Default canonical paths
 DEFAULT_C49_LK = os.path.expanduser("~/Realme1/C49_extracted/lk.img")
-DEFAULT_C50_LK = os.path.expanduser("~/Realme1/C50_research/c50_static/lk.img")
+DEFAULT_C50_PACKAGE = os.path.expanduser(
+    "~/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t"
+)
+DEFAULT_C50_LK = os.path.join(DEFAULT_C50_PACKAGE, "lk.img")
 DEFAULT_C49_PRELOADER = os.path.expanduser("~/Realme1/C49_extracted/preloader_oppo6771_17065.bin")
-DEFAULT_C50_PRELOADER = os.path.expanduser("~/Realme1/C50_research/c50_static/preloader_emmc.img")
+DEFAULT_C50_PRELOADER = os.path.join(DEFAULT_C50_PACKAGE, "preloader_emmc.img")
 
 # Expected SHA-256 hashes
 EXPECTED_HASHES = {
@@ -411,6 +414,17 @@ def validate_lk_differential(
     if len(c50_p) < MIN_PRELOADER_C50_SIZE:
         results["status"] = "FAIL"
         results["failures"].append(f"Input file truncated: c50_preloader size {len(c50_p)} B is less than required {MIN_PRELOADER_C50_SIZE} B")
+
+    # Do not attempt fixed-offset certificate or disassembly checks on truncated
+    # inputs.  Returning the structured failure keeps malformed-input handling
+    # deterministic and avoids turning an audit diagnostic into an exception.
+    if any(len(data) < required for data, required in (
+        (c49_lk, MIN_LK_SIZE),
+        (c50_lk, MIN_LK_SIZE),
+        (c49_p, MIN_PRELOADER_C49_SIZE),
+        (c50_p, MIN_PRELOADER_C50_SIZE),
+    )):
+        return results
 
     # -------------------------------------------------------------
     # 2. LK Diff Enumeration

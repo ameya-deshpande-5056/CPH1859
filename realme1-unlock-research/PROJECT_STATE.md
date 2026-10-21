@@ -2,12 +2,12 @@
 
 ## Authoritative Progress Indicator
 
-- **Project Status:** ACTIVE RESEARCH / PHASE 10 DEEPTESTING REVERSE ENGINEERING COMPLETE
-- **Current Phase:** Phase 10: DeepTesting application, framework routing, and HAL persistence analysis
-- **Current Task ID & Description:** P010: Reverse-engineer decompiled DeepTesting APK and map end-to-end token handoff
-- **Overall Completion Estimate:** 100% of the requested read-only audit deliverables; exact installed CPH1859 C.50 image provenance remains open
-- **Last Completed Milestone:** Reverse-engineered decompiled DeepTesting APK (`com.coloros.deeptesting`), recovered payload encryption scheme (`AesEncryptUtils`), traced framework IPC (`OppoEngineerService`) to native HAL daemon (`vendor.oppo.engnative.engineer@1.0-service`), verified raw persistence to `reserve4` sector `0x7816` (`0x00F02C00`), and reconciled the Little Kernel verification gate. Produced `ART-017`.
-- **Formal Project Outcome:** **`NO VIABLE SOFTWARE-ONLY UNLOCK ROUTE FOUND IN THE ANALYZED EVIDENCE`** (C.49 and the CPH1861-targeted C.50 reference enforce identical token gating; exact installed CPH1859 C.50 partition provenance remains open).
+- **Project Status:** READ-ONLY SECURITY AUDIT COMPLETE / EXACT CPH1859 C.50 PROVENANCE OPEN
+- **Current Phase:** Comprehensive firmware, userspace, kernel, and boot-chain audit
+- **Current Task ID & Description:** AUDIT-001: Produce evidence-calibrated inventory, vulnerability matrix, and phase reports
+- **Overall Completion Estimate:** Deliverables complete; exact installed CPH1859 C.50 image provenance and preloader indirect dispatch remain open
+- **Last Completed Milestone:** Repaired stale validator paths, hardened truncated-input handling, reproduced all 41 tests and differential PASS, generated a 171-file C.49/C.50 manifest, and produced userspace, kernel, boot-chain, and vulnerability-matrix reports.
+- **Formal Project Outcome:** **`NO APPLICABLE AND CONFIRMED ROOT OR SOFTWARE-ONLY BOOTLOADER-STATE VULNERABILITY FOUND`** (C.49 and the CPH1861-targeted C.50 reference enforce identical token gating; exact installed CPH1859 C.50 partition provenance remains open).
 - **Primary Technical Findings (Audited & Verified):**
   1. **Token Storage Coordinates:** `verify_unlock_token()` (`0x6002EB00`) calls `read_reserve4` (`0x6002C794`), which adds base sector `0x7800` to argument `0x16`, establishing the actual token location as **sector `0x7816`** (`0x00F02C00` bytes into partition `reserve4`). Read length is 8 sectors (4,096 bytes).
   2. **Serial & Signature Checks:** Compares 16 bytes of SoC eFUSE serial against the token serial field (`sp + 0x688`), with a leading-zero fallback. Hashes the 16-byte token serial field and validates a 256-byte RSA-2048 RSASSA-PSS/SHA-256 signature with MGF1-SHA-256, salt length 32, and trailer `0xBC` against the OEM public modulus at RAM **`0x6007EE48`** (file offset `0x7F048`).
@@ -30,6 +30,11 @@
 - **Current Git Branch:** main
 - **Relevant Artifact Paths:**
   - `realme1-unlock-research/artifacts/deeptesting_decompiled_analysis.md` (ART-017)
+  - `realme1-unlock-research/artifacts/firmware_inventory.json` / `.md`
+  - `realme1-unlock-research/artifacts/android_userspace_audit.md`
+  - `realme1-unlock-research/artifacts/kernel_audit.md`
+  - `realme1-unlock-research/artifacts/boot_chain_audit.md`
+  - `realme1-unlock-research/artifacts/vulnerability_matrix.json` / `.md`
   - `realme1-unlock-research/artifacts/authorization_protocol.md` (ART-012)
   - `realme1-unlock-research/artifacts/alternative_unlock_paths.md` (ART-013)
   - `realme1-unlock-research/artifacts/security_findings.md` (ART-014)

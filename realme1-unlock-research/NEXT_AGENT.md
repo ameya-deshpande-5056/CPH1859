@@ -1,5 +1,16 @@
 # Next Agent Handoff: Realme 1 (CPH1859) Bootloader Unlock Research
 
+## Audit completion status (2026-10-21)
+
+The requested read-only audit deliverables are complete. Read `REPORT.md`, `artifacts/vulnerability_matrix.md`, and the phase reports before doing further work. No device or partition was modified.
+
+- Inventory: 171 files across the C.49 extraction and CPH1861-targeted C.50 OTA reference; all hashes are in `artifacts/firmware_inventory.json`.
+- Userspace: C.49 system/vendor static review found privileged Engineer HIDL/raw reserve access, but no untrusted-app caller bypass.
+- Kernel: 4.4.146+ MT6771 lineage and driver surfaces identified; bulletin CVEs remain unproven applicability leads.
+- Boot chain: LK token gate and C.49/C.50 differential independently validated; preloader indirect DA/BROM reachability remains unknown.
+- Tests: `PYTHONPATH=src:scripts python3 -m unittest discover -s tests` passes 41/41.
+- C.50 scope: OTA metadata/updater script explicitly targets CPH1861. Never treat it as exact installed CPH1859 firmware.
+
 ## Current Objective
 Phase 7 reverse engineering, Phase 8 evidence reconciliation, Phase 9 static path audit, and Phase 10 DeepTesting end-to-end reverse engineering are **COMPLETE**. The token verifier `verify_unlock_token()` (RAM `0x6002EB00`–`0x6002EDCC`) hashes the 16-byte token serial field, passes the resulting 32-byte digest to `0x600567C0`, and the latter performs RSASSA-PSS SHA-256 with salt length 32 and trailer byte `0xBC`. Fastboot commands are strictly registered post-verification. Stock recovery has no direct audited references to the security partitions. In Phase 10, static reverse engineering of the decompiled OEM DeepTesting APK (`com.coloros.deeptesting`), system framework (`services.vdex`), and native HAL (`vendor.oppo.engnative.engineer@1.0-service`) fully resolved the token origin, AES-128-ECB payload encryption, framework routing via `OppoEngineerManager.fastbootUnlock`, native partition persistence to `reserve4` sector `0x7816` (`0x00F02C00`), and Little Kernel handoff. Full test suite passes 41/41 unit tests.
 

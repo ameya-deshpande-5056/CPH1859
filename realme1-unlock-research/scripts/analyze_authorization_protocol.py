@@ -22,9 +22,10 @@ from typing import Dict, Any, List, Tuple
 
 # Binary paths
 DEFAULT_C49_LK = "/home/ameya/Realme1/C49_extracted/lk.img"
-DEFAULT_C50_LK = "/home/ameya/Realme1/C50_research/c50_static/lk.img"
+DEFAULT_C50_PACKAGE = "/home/ameya/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t"
+DEFAULT_C50_LK = os.path.join(DEFAULT_C50_PACKAGE, "lk.img")
 DEFAULT_C49_PRELOADER = "/home/ameya/Realme1/C49_extracted/preloader_oppo6771_17065.bin"
-DEFAULT_C50_PRELOADER = "/home/ameya/Realme1/C50_research/c50_static/preloader_emmc.img"
+DEFAULT_C50_PRELOADER = os.path.join(DEFAULT_C50_PACKAGE, "preloader_emmc.img")
 DEFAULT_RECOVERY = "/home/ameya/Realme1/C49_extracted/recovery.img"
 
 RAM_BASE = 0x60000000

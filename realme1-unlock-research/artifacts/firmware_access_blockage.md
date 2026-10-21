@@ -1,6 +1,6 @@
 # Firmware Access & Static Analysis Blockage Report: Realme 1 (CPH1859 C.50)
 
-> **Supersession note (2026-10-21):** This Phase-2 report describes the state before the C.50 reference images were placed under `/home/ameya/Realme1/C50_research/c50_static/`. Its “C.50 unavailable” conclusions are historical. The exact installed CPH1859 C.50 partitions are still not provenance-established; current reference-image results are recorded in `research_evidence_audit.md`, `c50_differential_validation.md`, and `preloader_architecture_map.md`.
+> **Supersession note (2026-10-21):** This Phase-2 report describes the state before the C.50 reference images were available under `/home/ameya/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t/`. Its “C.50 unavailable” conclusions are historical. The exact installed CPH1859 C.50 partitions are still not provenance-established; current reference-image results are recorded in `research_evidence_audit.md`, `c50_differential_validation.md`, and `preloader_architecture_map.md`.
 
 ## 1. Local Firmware Inventory & Provenance Check
 
