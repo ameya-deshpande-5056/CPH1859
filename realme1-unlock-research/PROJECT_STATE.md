@@ -20,7 +20,7 @@
   3. If hardware constraints are ever relaxed, evaluate testpoint shorting (DAT0/CLK) for `mtkclient` BROM access.
 - **Last Updated:** 2026-10-21T10:43:00+05:30
 - **Current Git Branch:** main
-- **Latest Relevant Commit:** `c401067` (Update pending for Phase 2 deliverables)
+- **Latest Relevant Commit:** `f55ede5` ("Phase 2: Complete epistemic evidence audit, firmware blockage assessment, and calibrated report")
 - **Relevant Artifact Paths:**
   - `realme1-unlock-research/REPORT.md`
   - `realme1-unlock-research/artifacts/evidence_audit.md`
