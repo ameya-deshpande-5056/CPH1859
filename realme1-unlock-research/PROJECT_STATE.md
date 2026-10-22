@@ -2,12 +2,14 @@
 
 ## Authoritative Progress Indicator
 
-- **Project Status:** READ-ONLY SECURITY AUDIT COMPLETE / EXACT CPH1859 C.50 PROVENANCE OPEN
-- **Current Phase:** Comprehensive firmware, userspace, kernel, and boot-chain audit
-- **Current Task ID & Description:** AUDIT-001: Produce evidence-calibrated inventory, vulnerability matrix, and phase reports
-- **Overall Completion Estimate:** Deliverables complete; exact installed CPH1859 C.50 image provenance and preloader indirect dispatch remain open
-- **Last Completed Milestone:** Repaired stale validator paths, hardened truncated-input handling, reproduced all 41 tests and differential PASS, generated a 171-file C.49/C.50 manifest, and produced userspace, kernel, boot-chain, and vulnerability-matrix reports.
-- **Formal Project Outcome:** **`NO APPLICABLE AND CONFIRMED ROOT OR SOFTWARE-ONLY BOOTLOADER-STATE VULNERABILITY FOUND`** (C.49 and the CPH1861-targeted C.50 reference enforce identical token gating; exact installed CPH1859 C.50 partition provenance remains open).
+- **Project Status:** READ-ONLY SECURITY AUDIT COMPLETE / ANDROID ROOT ASSESSMENT COMPLETE / EXACT CPH1859 C.50 PROVENANCE OPEN / C.50/LK DIFFERENTIAL ANALYSIS COMPLETE
+- **Current Phase:** Android root candidate assessment and evidence report
+- **Current Task ID & Description:** AUDIT-002: Produce ranked Android root candidate shortlist, evidence reports, and read-only experiment plan
+- **Overall Completion Estimate:** Android root assessment deliverables complete; exact installed CPH1859 C.50 image provenance and kernel config/source remain open; C.49 vs C.50 LK differential: 315 bytes in 3 certificate clusters only, all other code/data 100% identical
+- **Current Phase Sub-phase:** E-001/E-002/E-003 open investigations / Kernel .config extracted from live device
+- **Overall Completion Estimate:** Android root assessment deliverables complete; kernel .config extracted from live CPH1859 device via /proc/config.gz - major evidence gap closed; exact installed CPH1859 C.50 image provenance open but config now available; C.49 vs C.50 LK differential confirmed: 315 bytes in 3 certificate clusters only, all .text/data/code 100% byte-identical; live device ADB audit performed, engineer HIDL service confirmed, ATCI service documented as disabled in user build; kernel config reveals Oppo-specific security features relevant to root candidate assessment
+- **Last Completed Milestone:** Updated vulnerability matrix with Android root candidates (U-001 through U-005, K-001 through K-004); produced ranked shortlist, individual evidence reports, and safe read-only experiment plan; extracted and analyzed C.49 kernel and vendor filesystems; C.49 vs C.50 LK differential analysis (ART-008): 315 bytes differ across 753,984 bytes concentrated in 3 certificate clusters only; token verification 100% identical across builds; live device ADB audit: 187 services enumerated, engineer HIDL service confirmed, ATCI service documented as disabled in user build; kernel .config extracted from live device and analyzed for Oppo security features
+- **Formal Project Outcome:** **`NO CONFIRMED ANDROID ROOT PATH FOUND`** — No vulnerability confirmed to provide Android userspace or kernel root on CPH1859 C.50. Strongest candidates: K-001/K-002 (kernel LPE, UNKNOWN/PLAUSIBLE — evidence gap), U-001 (Engineer HIDL service, PLAUSIBLE — no untrusted_app path proven), U-002 (ATCI diagnostic service, STRONGLY SUPPORTED surface but disabled in user build). Bootloader-state modification remains a separate downstream question.
 - **Primary Technical Findings (Audited & Verified):**
   1. **Token Storage Coordinates:** `verify_unlock_token()` (`0x6002EB00`) calls `read_reserve4` (`0x6002C794`), which adds base sector `0x7800` to argument `0x16`, establishing the actual token location as **sector `0x7816`** (`0x00F02C00` bytes into partition `reserve4`). Read length is 8 sectors (4,096 bytes).
   2. **Serial & Signature Checks:** Compares 16 bytes of SoC eFUSE serial against the token serial field (`sp + 0x688`), with a leading-zero fallback. Hashes the 16-byte token serial field and validates a 256-byte RSA-2048 RSASSA-PSS/SHA-256 signature with MGF1-SHA-256, salt length 32, and trailer `0xBC` against the OEM public modulus at RAM **`0x6007EE48`** (file offset `0x7F048`).
@@ -23,9 +25,9 @@
   12. **Emergency reset:** Executable watchdog routines at raw `0x2ae34`, `0x2ae44`, and `0x2aef0` have direct internal callers/transfers. The BROM strings do not establish a host-triggerable command path.
   13. **DeepTesting End-to-End Pipeline Proven:** Decompiled APK analysis proves `unlockCode` was fetched from `https://lkf.realmemobile.com`, decoded from 544 hex chars to 272 binary bytes, transferred via `OppoEngineerManager.fastbootUnlock` to HAL daemon `vendor.oppo.engnative.engineer@1.0-service`, and written directly to sector `0x7816` (`0x00F02C00`) of `/dev/block/.../reserve4`. Exit-test zeroing writes a single `0x00` byte. APK v1.0.1 explicitly requires model prefix `RMX` (excluding `CPH1859`). Decommissioning of the backend completely closes the official software authorization route.
 - **Next Three Actions (Prioritized):**
-  1. Acquire and authenticate exact CPH1859 C.50 LK/preloader images with independent partition provenance.
-  2. Use a loader-aware static-analysis tool to resolve preloader table/indirect DA and security dispatch; do not test the reset path on the phone.
-  3. Synthesize final comprehensive investigation report integrating Little Kernel, Preloader, DeepTesting APK, and vendor HAL.
+  1. Acquire model-authenticated CPH1859 C.50 OTA; extract boot.img; perform kernel CVE backport analysis (E-001)
+  2. Enumerate exported Binder/HIDL services on live device via read-only ADB (E-002)
+  3. Statically analyze Engineer HIDL service binary for caller-check vulnerabilities (E-003)
 - **Last Updated:** 2026-10-21T18:12:00+05:30
 - **Current Git Branch:** main
 - **Relevant Artifact Paths:**
@@ -34,7 +36,12 @@
   - `realme1-unlock-research/artifacts/android_userspace_audit.md`
   - `realme1-unlock-research/artifacts/kernel_audit.md`
   - `realme1-unlock-research/artifacts/boot_chain_audit.md`
-  - `realme1-unlock-research/artifacts/vulnerability_matrix.json` / `.md`
+  - `realme1-unlock-research/artifacts/vulnerability_matrix.json` / `.md` **(UPDATED: Android root candidates U-001–U-005, K-001–K-004)**
+  - `realme1-unlock-research/artifacts/root_candidate_shortlist.md` **(NEW: ranked Android root candidates)**
+  - `realme1-unlock-research/artifacts/evidence_report_K-001_kernel_lpe.md` **(NEW: kernel LPE evidence)**
+  - `realme1-unlock-research/artifacts/evidence_report_U-001_engineer_hidl.md` **(NEW: Engineer HIDL evidence)**
+  - `realme1-unlock-research/artifacts/evidence_report_U-002_atci.md` **(NEW: ATCI diagnostic service evidence)**
+  - `realme1-unlock-research/artifacts/safe_readonly_experiments.md` **(NEW: read-only experiment plan)**
   - `realme1-unlock-research/artifacts/authorization_protocol.md` (ART-012)
   - `realme1-unlock-research/artifacts/alternative_unlock_paths.md` (ART-013)
   - `realme1-unlock-research/artifacts/security_findings.md` (ART-014)

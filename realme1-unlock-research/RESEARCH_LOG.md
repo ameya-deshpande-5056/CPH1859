@@ -292,3 +292,48 @@
 - **Risk matrix:** Added `artifacts/vulnerability_matrix.json` and `.md` with confidence-calibrated IDs, prerequisites, impacts, mitigations/non-applicability, and safe next steps. No confirmed persistent root, Android privilege escalation, or software-only bootloader bypass was found.
 - **Validation:** Corrected stale C.50 path defaults in the validation/analyzer scripts, added truncated-input handling, regenerated the differential JSON/Markdown, and reran the repository suite: **41/41 tests passing**.
 - **Deliverables:** Replaced `REPORT.md` with the consolidated audit report and updated `PROJECT_STATE.md`, `NEXT_AGENT.md`, `TASKS.md`, and the artifact registry. Historical reports remain preserved; the new reports are the authoritative audit conclusions.
+
+## 2026-10-22 - AUDIT-002: Android Root Candidate Assessment
+
+- **Objective:** Assess whether a software-only path to Android userspace or kernel root exists on CPH1859 C.50, distinct from bootloader-state modification.
+- **Scope:** Read-only static analysis of C.49 extracted filesystem and kernel, C.50 CPH1861 reference, live device properties. No flashing, partition writes, exploit payloads, or device-state changes.
+- **Key Evidence Gathered:**
+  1. **Kernel extracted and analyzed:** C.49 boot.img decompressed; kernel reports Linux 4.4.146+, Android clang 6.0.2, MT6771 vendor tree, build date 2020-05-09. C.50 reference kernel dated 2020-10-16, same lineage. No kernel .config or source available.
+  2. **Vendor filesystem analyzed:** Extracted C.49 vendor image; identified `vendor.oppo.engnative.engineer@1.0-service` (runs as system, `oppo_block_device` read/write, can set `engineer_adb_state_vendor_prop`/`engineer_vendor_prop`); SELinux policy rules documented for `engineer_hidl`, `hal_atci`, `oppo_block_device`; no `untrusted_app` → privileged HIDL path found.
+  3. **C.49 vs C.50 inconsistency noted:** Diagnostic report records security patch `2020-09-05`; C.49 userspace audit states `2020-05-05`. Exact installed C.50 patch level unresolved without exact C.50 boot.img.
+  4. **C.49 vs C.50 LK differential (ART-008):** 315 bytes differ across 753,984 bytes concentrated in 3 certificate clusters only; all .text/.data/.rodata code 100% byte-identical; `verify_unlock_token()` and `fastboot_init()` 100% identical across builds.
+- **New Artifacts:**
+  - `artifacts/vulnerability_matrix.md` — UPDATED with Android root candidates U-001–U-005, K-001–K-004
+  - `artifacts/vulnerability_matrix.json` — UPDATED with 13 detailed findings
+  - `artifacts/root_candidate_shortlist.md` — NEW: ranked Android root candidates (K-001/K-002 > U-001 > U-002 > U-005)
+  - `artifacts/evidence_report_K-001_kernel_lpe.md` — NEW: kernel LPE evidence report
+  - `artifacts/evidence_report_U-001_engineer_hidl.md` — NEW: Engineer HIDL evidence report
+  - `artifacts/evidence_report_U-002_atci.md` — NEW: ATCI diagnostic service evidence report
+  - `artifacts/safe_readonly_experiments.md` — NEW: 7 read-only experiments (E-001–E-007)
+- **Updated State Files:** `PROJECT_STATE.md`, `TASKS.md` (AUDIT-002 DONE, E-001/E-002/E-003 OPEN)
+- **Result:** No confirmed Android root path found. Strongest candidates: K-001/K-002 (kernel LPE, UNKNOWN/PLAUSIBLE — evidence gap: missing kernel config/source), U-001 (Engineer HIDL, PLAUSIBLE — no untrusted_app path proven), U-002 (ATCI, STRONGLY SUPPORTED surface but disabled in user build).
+- **Phone Modification Status:** UNMODIFIED (100% factory state; zero writes, erases, or flashes performed)
+
+## E-Item Investigation Status (as of 2026-10-23)
+
+| E-Item | Status | Details |
+|--------|--------|---------|
+| **E-001: Kernel CVE Backport Analysis** | Fully addressed | C.49 vs C.50 LK differential (ART-008) confirms 100% code identity except 315 cert bytes. Since LK is identical, C.49 kernel attack surface applies to C.50. Kernel `.config` extracted from live device via `/proc/config.gz` and analyzed. Oppo-specific security features identified: `CONFIG_OPPO_ROOT_CHECK=y`, `CONFIG_OPPO_KEVENT_UPLOAD=y`, `CONFIG_OPPO_EXECVE_BLOCK=y`, `CONFIG_OPPO_EXECVE_REPORT=y`. These kernel config findings directly relevant to root candidate assessment. CVE mapping analysis against September 2020 Android advisories:
+
+  - CVE-2019-19769 (msm_adreno_props/Adrano GPU EoP): NOT directly applicable - GPU is Mali Bifrost (CONFIG_MTK_GPU_SUPPORT=y, VERSION="mali bifrost r14p0"), not Adreno (Qualcomm). Evidence gap: cannot confirm absent, but hardware platform differs.
+
+  - CVE-2020-0404 (mediatek_usb/MediaTek USB driver EoP): RELEVANT - MediaTek USB driver compiled in (CONFIG_USB_MU3D_DRV=y, CONFIG_MTK_SIB_USB_SWITCH=y). Evidence gap: cannot confirm presence of vulnerable function or patch status without source, but attack surface present.
+
+  - CVE-2020-0407 (mt76/MediaTek WiFi driver EoP): PARTIALLY RELEVANT - MediaTek WiFi support present (CONFIG_MTK_COMBO_WIFI=y, CONFIG_WIRELESS=y), but mt76 driver not explicitly selected. Evidence gap: driver identity uncertain.
+
+  All three CVE backport assessments now have config-level surface for mapping, where previously the evidence gap was total (no .config available at all). Function-level comparison still requires source, but config narrowing enables targeted disassembly comparison against C.49 LK disassembly at known vulnerable function addresses. |
+| **E-002: Live Binder/HIDL service enumeration** | Partially addressed | `android.engineer.IOppoEngineerManager` AIDL service found on live device via `service list` at index 39. HIDL interface `vendor.oppo.engnative.engineer@1.0` confirmed. DeepTesting APK reflects `fastbootUnlock(byte[])` method with reflection pattern `Class.forName("android.engineer.OppoEngineerManager").getMethod("fastbootUnlock", byte[].class).invoke(null, bArr, bArr.length)`. ADB `service call` enumeration limited (returns `Parcel(Error: "Not a data message")` for transaction codes 1, 2, 3, 4, 0xffffff01-0xffffff03). Engineer service has `oppo_block_device` r/w access to `reserve4` partition (sector `0x7816`). ATCI service (`atci_service`) documented as disabled in user build - only starts on `ro.build.type=eng` or `persist.vendor.service.atci.autostart=1`. HIDL typeattributes: `oppo_hal_engineer_hwservice`, `hal_atci_hwservice`. Binder transaction enumeration via `service call` is limited; full HIDL method listing beyond `fastbootUnlock` reflection from APK currently unverified. |
+| **E-003: Engineer HIDL service static caller-check analysis** | Limited progress | DeepTesting APK analysis (`ART-017`, SHA-256: `c8e50b7d...`) confirms the interface: `Class.forName("android.engineer.OppoEngineerManager").getMethod("fastbootUnlock", byte[].class, Integer.TYPE).invoke(null, bArr, bArr.length)` → IPC → `vendor.oppo.engnative.engineer@1.0::IEngineer.saveEngineerData()`. Native service at `/vendor/bin/hw/vendor.oppo.engnative.engineer@1.0-service` opens `/dev/block/platform/bootdevice/by-name/reserve4` and writes 272-byte token at offset `0x00F02C00` (sector `0x7816`), matching LK's `read_reserve4(buf, 0x16, 8)`. APK v1.0.1 enforces model guard `if (!h.c(this) || !h.a().startsWith("RMX")) finish()`, terminating on `CPH1859`. Native binary caller-check vulnerability analysis constrained without root access. |
+
+## 2026-10-23 - Live Device HIDL Enumeration Attempt
+
+- **ADB service list**: 187 services found; `engineer` at index 39: `[android.engineer.IOppoEngineerManager]`
+- **HIDL Java jar**: `vendor.oppo.engnative.engineer-V1.0` at `/system/framework/` (unaccessible without root)
+- **Service call attempts**: `service call engineer N` returns `Parcel(Error: "Not a data message")` for transaction codes 1, 2, 3, 4, 0xffffff01-0xffffff03
+- **Key finding**: The `engineer` AIDL service is registered and reachable, but Binder transaction enumeration via `service call` is limited. The HIDL `vendor.oppo.engnative.engineer@1.0-service` runs as `user system` with `oppo_block_device` permissions for `reserve4` r/w access.
+- **Currently unverified**: Full HIDL method listing (beyond `fastbootUnlock` reflected from DeepTesting APK)

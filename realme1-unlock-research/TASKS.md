@@ -219,3 +219,51 @@
 - **Actions Performed:** Fully decompiled and audited Java source code, identified AES-128-ECB PKCS5Padding key derivation in `AesEncryptUtils`, extracted native HAL daemon from `vendor.img`, disassembled functions `0x9C60` and `0x5258` proving direct write to sector `0x7816` (`0x00F02C00`) of `reserve4`, reconciled Little Kernel PSS verifier, discovered explicit APK `RMX` prefix check excluding `CPH1859`, and validated community hardware testpoint rationale. Produced `artifacts/deeptesting_decompiled_analysis.md` (`ART-017`).
 - **Evidence & Artifact References:** `artifacts/deeptesting_decompiled_analysis.md` (`ART-017`), `artifacts/README.md`.
 - **Result & Confidence Level:** Complete, 100% confidence.
+
+| **AUDIT-002** | Android root candidate assessment: shortlist, evidence reports, read-only experiments | **DONE** | AUDIT-001 | Audit |
+| **E-001** | Kernel CVE backport analysis (exact CPH1859 C.50 boot.img) | **OPEN** | AUDIT-002 | Audit |
+| **E-002** | Live Binder/HIDL service enumeration (read-only ADB) | **OPEN** | AUDIT-002 | Audit |
+| **E-003** | Engineer HIDL service static caller-check analysis | **OPEN** | AUDIT-002 | Audit |
+
+---
+
+## Phase 11 Task Details (Android Root Assessment)
+
+### AUDIT-002: Android Root Candidate Assessment
+
+- **Status:** DONE
+- **Objective:** Produce ranked Android root candidate shortlist, individual evidence reports, and safe read-only experiment plan for CPH1859 C.50 Android userspace/kernel root assessment.
+- **Required Inputs:** C.49 extracted system/vendor/boot images, C.50 CPH1861 reference, vulnerability_matrix.json, live device properties.
+- **Actions Performed:**
+  1. Extracted and analyzed C.49 kernel (4.4.146+, MT6771), vendor filesystem (sepolicy, init scripts, privileged binaries)
+  2. Identified and documented 13 vulnerability findings in vulnerability_matrix.json (U-001–U-005, K-001–K-004, plus existing B/K/R/D entries)
+  3. Produced ranked shortlist: K-001/K-002 (kernel LPE) > U-001 (Engineer HIDL) > U-002 (ATCI) > U-005 (diagnostic binaries)
+  4. Produced individual evidence reports for K-001, U-001, U-002
+  5. Produced 7 safe read-only experiments (E-001 through E-007)
+  6. Documented evidence gaps: exact C.50 kernel config/source, C.50 vendor filesystem, HIDL method analysis
+- **Evidence & Artifact References:** `artifacts/vulnerability_matrix.json` / `.md`, `artifacts/root_candidate_shortlist.md`, `artifacts/evidence_report_K-001_kernel_lpe.md`, `artifacts/evidence_report_U-001_engineer_hidl.md`, `artifacts/evidence_report_U-002_atci.md`, `artifacts/safe_readonly_experiments.md`
+- **Result & Confidence Level:** Complete — no confirmed Android root path; strongest candidates are kernel LPE (evidence gap) and Engineer HIDL service (plausible surface)
+
+### E-001: Kernel CVE Backport Analysis
+
+- **Status:** OPEN
+- **Objective:** Obtain model-authenticated CPH1859 C.50 boot.img; extract kernel; compare vulnerable functions against Android Sept 2020 bulletin fixing commits (CVE-2019-19769, CVE-2020-0404).
+- **Required Inputs:** Model-authenticated CPH1859 C.50 OTA package.
+- **Actions Performed:** None yet — requires exact C.50 kernel image.
+- **Next Step:** Acquire CPH1859 C.50 OTA; decrypt with `oppo_ozip_decrypt`; extract boot.img; static kernel analysis only.
+
+### E-002: Live Binder/HIDL Service Enumeration
+
+- **Status:** OPEN
+- **Objective:** Enumerate exported Binder/HIDL services on live device via read-only ADB commands to determine untrusted_app reachability.
+- **Required Inputs:** Live device connected via ADB.
+- **Actions Performed:** None yet — requires live device connection.
+- **Next Step:** `adb shell service list`, `adb shell dumpsys`, `adb shell pm list packages -s` (read-only).
+
+### E-003: Engineer HIDL Service Static Caller-Check Analysis
+
+- **Status:** OPEN
+- **Objective:** Statically analyze `vendor.oppo.engnative.engineer@1.0-service` binary for caller-check vulnerabilities and unsafe command execution.
+- **Required Inputs:** C.49 vendor image (already available); C.50 vendor image (for comparison).
+- **Actions Performed:** SELinux policy rules documented in vulnerability_matrix.json U-001; init script and property access rules extracted.
+- **Next Step:** Disassemble service binary; enumerate IEngineer HIDL methods; analyze caller-check branches.
