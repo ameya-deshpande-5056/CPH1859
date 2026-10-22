@@ -218,6 +218,27 @@
   2. Preloader USB state machine: `bldr_handshake` -> `usbdl_send_da` -> `usbdl_vfy_da` -> `usbdl_jump_da`.
   3. Evaluated SLA enforcement in `sec_auth.c` and `sboot_state.c` (`sbc_en = 1`), confirming that unauthenticated DA execution is blocked.
   4. Located emergency Watchdog BootROM reset trigger at `0x0371F4` (`Preloader going reset and trigger BROM usb auto detectiton!!`).
+
+---
+
+## 2026-10-22T10:00:00+05:30 — Phase 12: Kernel provenance audit and final candidate reassessment
+
+- **Objective:** Determine whether the exact installed CPH1859 C.50 kernel image or vendor source tree is present, and then re-evaluate the remaining kernel LPE candidates under the exact-source standard.
+- **Evidence reviewed:**
+  - C.49 extracted `boot.img` and `lk.img` under `/home/ameya/Realme1/C49_extracted/`.
+  - CPH1861-targeted C.50 OTA reference under `/home/ameya/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t/`.
+  - Live-device `/proc/config.gz` evidence for `CONFIG_OPPO_ROOT_CHECK` and related Oppo security symbols.
+  - Public/authoritative Android security bulletin and common-kernel references for generic CVE context.
+- **Observed Results:**
+  1. **No exact CPH1859 C.50 installed kernel image was recovered.** The local workspace contains the extracted C.49 artifacts and a CPH1861-targeted C.50 OTA reference, but not the exact installed CPH1859 boot image or vendor tree.
+  2. **Exact source provenance remains unverified.** The generic Android common-kernel tree is useful for upstream bulletin context, but it does not match a CPH1859 vendor branch or prove a vendor backport for this exact image.
+  3. **Kernel candidate status remains unresolved rather than proven.** `CVE-2020-0404` remains a plausible upstream issue class but cannot be tied to the exact installed CPH1859 binary without the exact boot image and kernel source. `CONFIG_OPPO_ROOT_CHECK` remains a live config symbol, not a proven root primitive.
+  4. **The evidence boundary is explicit.** The project keeps the strongest defensible conclusion: **`No confirmed Android-root path identified from the available evidence.`** It does not claim that all root paths are ruled out absolutely because that would require exact installed-kernel provenance and source-backed backport analysis.
+- **Artifacts produced:**
+  - `artifacts/phase12_kernel_provenance.md`
+  - `artifacts/phase12_source_match_matrix.json`
+  - `artifacts/phase12_lpe_reassessment.md`
+- **Conclusion:** The Phase 12 provenance review closes the remaining documentation gap without inventing a device-specific exploit. The evidence remains evidence-bound and conservative: no confirmed Android-root path, but no exact device-specific kernel source to rule out a hypothetical root path is available from the current artifact set.
   5. Produced research artifact `artifacts/preloader_usb_architecture_and_feasibility.md` (`ART-011`).
 
 ---
@@ -337,3 +358,17 @@
 - **Service call attempts**: `service call engineer N` returns `Parcel(Error: "Not a data message")` for transaction codes 1, 2, 3, 4, 0xffffff01-0xffffff03
 - **Key finding**: The `engineer` AIDL service is registered and reachable, but Binder transaction enumeration via `service call` is limited. The HIDL `vendor.oppo.engnative.engineer@1.0-service` runs as `user system` with `oppo_block_device` permissions for `reserve4` r/w access.
 - **Currently unverified**: Full HIDL method listing (beyond `fastbootUnlock` reflected from DeepTesting APK)
+
+---
+
+## 2026-10-23T13:00:00+05:30 — Phase 10 Root-Surface Audit and Evidence Reconciliation
+
+- **Objective:** Re-evaluate the meaning of `CONFIG_OPPO_ROOT_CHECK`, the authorization assumptions around Engineer HIDL / ATCI surfaces, and the actual applicability of the historical kernel CVEs without overstating unsupported claims.
+- **Evidence reviewed:** Existing project logs and reports: `REPORT.md`, `PROJECT_STATE.md`, `NEXT_AGENT.md`, `TASKS.md`, `artifacts/evidence_report_U-001_engineer_hidl.md`, `artifacts/evidence_report_U-002_atci.md`, `artifacts/kernel_audit.md`, `artifacts/root_candidate_shortlist.md`, `artifacts/vulnerability_matrix.md`, and the Phase 10 artifacts generated during this pass.
+- **Finding 1:** `CONFIG_OPPO_ROOT_CHECK` is a vendor-specific kernel configuration symbol. The workspace contains no source-backed implementation of the option; it is most consistent with anti-root or root-detection instrumentation, not a direct UID 0 escalation primitive.
+- **Finding 2:** Engineer HIDL is a real privileged surface, but the audited SELinux policy and service contexts do not provide an untrusted-app path to it. The service remains a plausible pivot surface only in the presence of a separate compromise or client-side bug.
+- **Finding 3:** ATCI/diagnostic services are privileged but disabled in the live user build. They require build or property activation, and the live device is not in that enabled state.
+- **Finding 4:** `CVE-2020-0404` remains a candidate only because the USB driver is compiled in; exact vendor patch status and exploitability are unresolved. `CVE-2020-0407` is not supported by the observed ext4 default configuration and should not be treated as a current lead for the device as evidenced.
+- **Formal conclusion:** **`No confirmed Android-root path identified from the available evidence.`**
+- **Artifacts produced:** `artifacts/phase10_root_surface_audit.md`, `artifacts/phase10_candidate_matrix.md`, `artifacts/phase10_evidence.json`.
+- **Safety status:** The device remains unmodified; no writes, flashes, or exploit probes were performed.

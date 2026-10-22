@@ -1,0 +1,109 @@
+{
+  "schema_version": "1.0",
+  "phase": "phase10",
+  "project_root": "/home/ameya/Realme1/CPH1859",
+  "conclusion": "No confirmed Android-root path identified from the available evidence.",
+  "claims": [
+    {
+      "id": "claim-001",
+      "statement": "The live CPH1859 kernel configuration contains CONFIG_OPPO_ROOT_CHECK=y.",
+      "source_paths": [
+        "RESEARCH_LOG.md",
+        "PROJECT_STATE.md"
+      ],
+      "confidence": "medium",
+      "status": "documented_in_project_logs",
+      "notes": "The exact implementation is not recovered in the workspace; this is a vendor-specific config symbol, not a source-backed vulnerability claim."
+    },
+    {
+      "id": "claim-002",
+      "statement": "Oppo-specific root-related config symbols appear in the same kernel config snapshot as CONFIG_OPPO_ROOT_CHECK.",
+      "source_paths": [
+        "RESEARCH_LOG.md"
+      ],
+      "confidence": "medium",
+      "status": "supported_by_log",
+      "notes": "Examples recorded in the project log include CONFIG_OPPO_KEVENT_UPLOAD=y, CONFIG_OPPO_EXECVE_BLOCK=y, and CONFIG_OPPO_EXECVE_REPORT=y."
+    },
+    {
+      "id": "claim-003",
+      "statement": "The Engineer HIDL service is a real privileged service surface in the C.49 vendor image.",
+      "source_paths": [
+        "artifacts/evidence_report_U-001_engineer_hidl.md",
+        "artifacts/android_userspace_audit.md",
+        "artifacts/vulnerability_matrix.json"
+      ],
+      "confidence": "high",
+      "status": "confirmed_in_vendor_analysis",
+      "notes": "The service runs as system and has read/write access to oppo_block_device and engineering properties."
+    },
+    {
+      "id": "claim-004",
+      "statement": "No direct untrusted_app path to engineer_hidl was found in the audited SELinux policy.",
+      "source_paths": [
+        "artifacts/evidence_report_U-001_engineer_hidl.md",
+        "artifacts/android_userspace_audit.md"
+      ],
+      "confidence": "high",
+      "status": "disproven_within_examined_paths",
+      "notes": "The project reviewed the service ACL and found no untrusted_app allow rule to the HIDL service."
+    },
+    {
+      "id": "claim-005",
+      "statement": "The DeepTesting APK historically invoked OppoEngineerManager.fastbootUnlock and routed the payload to the engineer HIDL service.",
+      "source_paths": [
+        "artifacts/deeptesting_decompiled_analysis.md",
+        "RESEARCH_LOG.md"
+      ],
+      "confidence": "high",
+      "status": "confirmed_in_decompiled_apk",
+      "notes": "The APK reflects the method invocation and the service writes to the reserve4 token area."
+    },
+    {
+      "id": "claim-006",
+      "statement": "ATCI services are configured as privileged root/system daemons, but they are disabled in the live user build.",
+      "source_paths": [
+        "artifacts/evidence_report_U-002_atci.md",
+        "artifacts/vulnerability_matrix.json",
+        "RESEARCH_LOG.md"
+      ],
+      "confidence": "high",
+      "status": "confirmed_in_vendor_init_and_live_posture",
+      "notes": "The relevant init scripts require ro.build.type=eng or persist.vendor.service.atci.autostart=1. The live device reports ro.build.type=user."
+    },
+    {
+      "id": "claim-007",
+      "statement": "CVE-2020-0404 is a potential kernel candidate only because the USB driver is present; exact vendor backport status remains unproven.",
+      "source_paths": [
+        "artifacts/kernel_audit.md",
+        "RESEARCH_LOG.md"
+      ],
+      "confidence": "medium",
+      "status": "candidate_only",
+      "notes": "The device config includes CONFIG_USB_MU3D_DRV=y, but the exact vulnerable function and patch state are not recovered."
+    },
+    {
+      "id": "claim-008",
+      "statement": "CVE-2020-0407 is not supported by the observed default C.49 configuration because the filesystem is ext4 rather than F2FS.",
+      "source_paths": [
+        "artifacts/kernel_audit.md",
+        "RESEARCH_LOG.md"
+      ],
+      "confidence": "high",
+      "status": "disproven_for_observed_default_path",
+      "notes": "The project log and kernel audit classify the observed default path as ext4 and not F2FS."
+    },
+    {
+      "id": "claim-009",
+      "statement": "The project has not recovered the exact CPH1859 C.50 kernel source or symbolized module metadata required to confirm the implementation of vendor-specific root checks.",
+      "source_paths": [
+        "PROJECT_STATE.md",
+        "NEXT_AGENT.md",
+        "REPORT.md"
+      ],
+      "confidence": "high",
+      "status": "documented_evidence_gap",
+      "notes": "This missing artifact is the strongest open dependency for resolving the remaining kernel-level uncertainty."
+    }
+  ]
+}

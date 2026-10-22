@@ -33,6 +33,52 @@
 | **P009** | Resolve LK/PSS data flow, preloader DA-call uncertainty, and emergency reset reachability | **DONE** | P008 | Phase 9 |
 | **P010** | Reverse-engineer decompiled DeepTesting APK and map end-to-end token handoff | **DONE** | P009 | Phase 10 |
 | **AUDIT-001** | Comprehensive read-only firmware/userspace/kernel/boot-chain audit and deliverables | **DONE** | P010 | Audit |
+| **PHASE10-001** | `CONFIG_OPPO_ROOT_CHECK`, Engineer HIDL/ATCI authorization, and historical CVE applicability root-surface audit | **DONE** | AUDIT-001 | Phase 10 |
+| **PHASE11-001** | Re-validate all Phase 10 findings against the artifact set and record the final evidence-based kernel LPE conclusion without invented exploit claims | **DONE** | PHASE10-001 | Phase 11 |
+| **PHASE12-001** | Inventory all recoverable kernel and source artifacts, determine whether any public or local source matches the exact CPH1859 lineage, and record the final provenance boundary for the outstanding kernel candidates | **DONE** | PHASE11-001 | Phase 12 |
+| **PHASE12-002** | Reassess the residual LPE candidates (`CVE-2020-0404`, vendor USB drivers, `CONFIG_OPPO_ROOT_CHECK`) against exact source and reachability requirements and keep the conclusion evidence-bound | **DONE** | PHASE12-001 | Phase 12 |
+
+---
+
+## Phase 12 Task Details
+
+### PHASE12-001: Kernel provenance and source-match audit
+- **Status:** DONE
+- **Objective:** Establish the strongest defensible lineage estimate for the live CPH1859 kernel using local extracted artifacts, C.49/C.50 references, and public source metadata, while explicitly separating direct observation from inference.
+- **Required Inputs:** C.49 extracted `boot.img`/`lk.img`, CPH1861-targeted C.50 `boot.img`/`lk.img`, live-device config evidence, and known public kernel source references.
+- **Actions Performed:** Inventoried the exact local kernel artifacts, recorded SHA-256 and size data, classified the CPH1861 OTA as a related reference instead of a direct CPH1859 match, and documented the absence of an exact installed CPH1859 C.50 kernel image or matching vendor source archive.
+- **Evidence & Artifact References:** `artifacts/phase12_kernel_provenance.md`, `artifacts/phase12_source_match_matrix.json`.
+- **Result & Confidence Level:** Complete. The decisive missing fact is the exact installed CPH1859 C.50 image and vendor source provenance.
+
+### PHASE12-002: Residual LPE candidate reassessment against exact provenance
+- **Status:** DONE
+- **Objective:** Reassess the strongest remaining kernel candidates using the exact-source and reachability standard, without claiming a vulnerability when the installed image and vendor patch status remain unverified.
+- **Required Inputs:** Phase 11 final review, upstream kernel CVE references, live-device config, extracted C.49/C.50 artifacts, and source-match audit results.
+- **Actions Performed:** Re-examined `CVE-2020-0404`, `CONFIG_OPPO_ROOT_CHECK`, and vendor USB-driver surfaces. The project kept the negative conclusion but documented the precise boundary: the evidence supports no confirmed path to UID 0, and the kernel candidates remain unresolved rather than proven.
+- **Evidence & Artifact References:** `artifacts/phase12_lpe_reassessment.md`.
+- **Result & Confidence Level:** Complete. Final evidence statement remains: **`No confirmed Android-root path identified from the available evidence.`**
+
+---
+
+## Phase 10 Task Details
+
+### PHASE10-001: Root Surface Audit and Evidence Reconciliation
+- **Status:** DONE
+- **Objective:** Evaluate the meaning of `CONFIG_OPPO_ROOT_CHECK`, audit method-level authorization and reachability of Engineer HIDL / ATCI interfaces, and validate whether historical kernel CVEs apply to the MT6771 vendor kernel and device configuration.
+- **Required Inputs:** Live-device config evidence in `RESEARCH_LOG.md`, C.49 vendor image analysis, existing kernel audit, vulnerability matrix, and reference build artifacts.
+- **Actions Performed:** Re-examined the live-kernel config references, correlated them with the Oppo-specific config family, validated that no direct untrusted app path to `engineer_hidl` exists in the audited policy, confirmed that ATCI is disabled in the live user build, and documented that `CVE-2020-0404` remains a candidate only and `CVE-2020-0407` is not supported by the observed ext4 default configuration.
+- **Evidence & Artifact References:** `artifacts/phase10_root_surface_audit.md`, `artifacts/phase10_candidate_matrix.md`, `artifacts/phase10_evidence.json`.
+- **Result & Confidence Level:** Complete. Final conclusion: **`No confirmed Android-root path identified from the available evidence.`**
+
+## Phase 11 Task Details
+
+### PHASE11-001: Final evidence validation and kernel LPE review
+- **Status:** DONE
+- **Objective:** Re-validate the Phase 10 conclusions against the full artifact set, classify each candidate as directly supported, gated, unresolved, or contradicted, and document the strongest kernel LPE lead without over-claiming a vulnerability.
+- **Required Inputs:** Phase 10 artifacts, Android Security Bulletin September 2020, NIST entries for `CVE-2020-0404` and `CVE-2020-0407`, kernel config notes, `PROJECT_STATE.md`, and vulnerability matrix evidence.
+- **Actions Performed:** Re-read the artifact set and classified each relevant claim; recorded that `CONFIG_OPPO_ROOT_CHECK` is unresolved rather than actionable; preserved the conclusion that Engineer HIDL and ATCI are privileged but gated; documented that `CVE-2020-0404` is an unresolved candidate and `CVE-2020-0407` is not supported; added `artifacts/phase11_evidence_validation.md`, `artifacts/phase11_kernel_lpe_review.md`, and `artifacts/phase11_candidate_matrix.json`.
+- **Evidence & Artifact References:** `artifacts/phase11_evidence_validation.md`, `artifacts/phase11_kernel_lpe_review.md`, `artifacts/phase11_candidate_matrix.json`.
+- **Result & Confidence Level:** Complete. Final conclusion: **`No confirmed Android-root path identified from the available evidence.`**
 
 ---
 

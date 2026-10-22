@@ -1,0 +1,87 @@
+{
+  "document": "phase12_source_match_matrix",
+  "project": "Realme 1 CPH1859 kernel provenance audit",
+  "execution_constraints": [
+    "Read-only audit only",
+    "No flashing, write, or exploit execution",
+    "Exact installed kernel provenance remains open"
+  ],
+  "overall_status": "No exact CPH1859 C.50 kernel image or matching vendor source tree recovered.",
+  "artifact_inventory": [
+    {
+      "artifact": "C49 extracted boot.img",
+      "path": "/home/ameya/Realme1/C49_extracted/boot.img",
+      "size_bytes": 9780048,
+      "sha256": "1a82355e63ca593f28224d4180e070acec562b6d45b76f565c84399a56e1b208",
+      "device_association": "CPH1859 C.49 extraction; direct device-family evidence",
+      "lineage": "Linux 4.4.146+, Android clang 6.0.2, MT6771, build date 2020-05-09",
+      "confidence": "high"
+    },
+    {
+      "artifact": "C49 extracted lk.img",
+      "path": "/home/ameya/Realme1/C49_extracted/lk.img",
+      "size_bytes": 753984,
+      "sha256": "30b48cd52b5d6035819c5580eb4a7f745010042318d1358b46a4f9fd5a37baaa",
+      "device_association": "CPH1859 C.49 extraction",
+      "lineage": "LK token gate for same MT6771 family",
+      "confidence": "high"
+    },
+    {
+      "artifact": "C50 OTA boot.img",
+      "path": "/home/ameya/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t/boot.img",
+      "size_bytes": 9786192,
+      "sha256": "44d9b48d5c49cde8b9df5eb9d67b8feefe4adf381bfb56cc9455e4bae23f98c5",
+      "device_association": "CPH1861-targeted OTA reference, not exact CPH1859 image",
+      "lineage": "Linux 4.4.146+, Android clang 6.0.2, MT6771, build date 2020-10-16",
+      "confidence": "medium; related reference only"
+    },
+    {
+      "artifact": "C50 OTA lk.img",
+      "path": "/home/ameya/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t/lk.img",
+      "size_bytes": 753984,
+      "sha256": "58cd19a9647610146f07bcf2ad5a1b0cd3056ce967c784bb37ea347669f5e563",
+      "device_association": "CPH1861-targeted OTA reference",
+      "lineage": "Same LK logic family, material difference only in cert metadata",
+      "confidence": "medium"
+    },
+    {
+      "artifact": "Live CPH1859 kernel config",
+      "source": "/proc/config.gz on the live device",
+      "device_association": "Exact live CPH1859 runtime kernel",
+      "lineage": "MT6771/Linux 4.4.146+ family; config contains Oppo root-detection symbols and related security toggles",
+      "confidence": "high for runtime config, low for exact source lineage"
+    },
+    {
+      "artifact": "Android common kernel tree",
+      "url": "https://android.googlesource.com/kernel/common",
+      "device_association": "Generic AOSP common kernel; not vendor-specific",
+      "lineage": "Android common kernel branches/tags, not the CPH1859 vendor tree",
+      "confidence": "low for this device"
+    }
+  ],
+  "evidence_classes": {
+    "directly_observed": [
+      "Live CPH1859 build fingerprint",
+      "Live kernel config symbols",
+      "C.49 extracted boot.img and lk.img",
+      "C.50 OTA metadata and package naming"
+    ],
+    "related_reference_only": [
+      "CPH1861 OTA boot.img and lk.img"
+    ],
+    "unknown": [
+      "Exact live CPH1859 C.50 boot.img",
+      "Exact vendor source tree",
+      "Exact vendor patch backport status",
+      "Exact symbolized kernel implementation behind CONFIG_OPPO_ROOT_CHECK"
+    ]
+  },
+  "final_assessment": {
+    "exact_kernel_match_found": false,
+    "exact_vendor_source_found": false,
+    "actionable_lpe_candidate_established": false,
+    "no_confirmed_root_path": true,
+    "root_paths_ruled_out": false,
+    "reason": "Without the exact installed kernel image and vendor source, the evidence supports a disciplined negative conclusion but does not justify claiming that root paths are globally ruled out."
+  }
+}

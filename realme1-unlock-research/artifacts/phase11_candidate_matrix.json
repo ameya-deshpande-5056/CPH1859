@@ -1,0 +1,50 @@
+{
+  "document": "phase11_candidate_matrix",
+  "project": "Realme 1 (CPH1859) read-only device audit",
+  "status": "No confirmed Android-root path identified from the available evidence.",
+  "evidence_threshold": "Specific user-to-UID-0 escalation path must be proven with exact kernel/source and reachability evidence.",
+  "candidates": [
+    {
+      "id": "K-001",
+      "name": "CVE-2020-0404 (USB driver EoP)",
+      "class": "kernel",
+      "status": "unresolved_candidate",
+      "reason": "Android bulletin lists it as a kernel EoP issue, and the vendor USB path is plausible for the MT6771 platform; however, the exact backport state and exploit path in the actual installed kernel are not proven."
+    },
+    {
+      "id": "K-002",
+      "name": "Oppo-specific root-check config family",
+      "class": "vendor_kernel_config",
+      "status": "unresolved",
+      "reason": "The symbol is real, but the workspace contains no direct implementation or source proving that it grants UID 0 or enables a userland escalation."
+    },
+    {
+      "id": "U-001",
+      "name": "Engineer HIDL / oppo engineer service",
+      "class": "userspace_vendor_service",
+      "status": "supported_but_gated",
+      "reason": "The service and direct write path to reserve4 are real and privileged, but no untrusted-app caller path is proven in the available evidence."
+    },
+    {
+      "id": "U-002",
+      "name": "ATCI diagnostic service",
+      "class": "userspace_vendor_service",
+      "status": "supported_but_disabled",
+      "reason": "The service is privileged and present in the vendor stack, but the live user build does not show it active. The live path is therefore not supported as a current root vector."
+    },
+    {
+      "id": "K-003",
+      "name": "CVE-2020-0407 (F2FS)",
+      "class": "kernel",
+      "status": "not_supported",
+      "reason": "Listed as an F2FS issue in the Android bulletin; the available device evidence does not support a concrete local-root chain for this build."
+    },
+    {
+      "id": "MISSING-001",
+      "name": "Exact installed CPH1859 C.50 kernel image and vendor source",
+      "class": "missing_provenance",
+      "status": "required_for_confirmation",
+      "reason": "This is the decisive missing artifact. Without exact kernel/source provenance, no concrete CVE or vendor-driver claim can be elevated above unresolved."
+    }
+  ]
+}

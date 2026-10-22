@@ -1,8 +1,8 @@
 # Next Agent Handoff: Realme 1 (CPH1859) Bootloader Unlock Research
 
-## Audit completion status (2026-10-21)
+## Audit completion status (2026-10-23)
 
-The requested read-only audit deliverables are complete. Read `REPORT.md`, `artifacts/vulnerability_matrix.md`, and the phase reports before doing further work. No device or partition was modified.
+The requested Phase 10 root-surface audit deliverables are complete. Read `REPORT.md`, `artifacts/vulnerability_matrix.md`, `artifacts/phase10_root_surface_audit.md`, and the phase reports before doing further work. No device or partition was modified.
 
 - Inventory: 171 files across the C.49 extraction and CPH1861-targeted C.50 OTA reference; all hashes are in `artifacts/firmware_inventory.json`.
 - Userspace: C.49 system/vendor static review found privileged Engineer HIDL/raw reserve access, but no untrusted-app caller bypass.
@@ -11,8 +11,14 @@ The requested read-only audit deliverables are complete. Read `REPORT.md`, `arti
 - Tests: `PYTHONPATH=src:scripts python3 -m unittest discover -s tests` passes 41/41.
 - C.50 scope: OTA metadata/updater script explicitly targets CPH1861. Never treat it as exact installed CPH1859 firmware.
 
+## Phase 12 final status
+The Phase 12 provenance review is complete. It confirms that the exact installed CPH1859 C.50 kernel image or vendor source tree is not present in the workspace and was not recovered from the available public or local evidence. The project’s final statement remains: no confirmed Android-root path identified from the available evidence. The remaining kernel candidates (`CVE-2020-0404`, `CONFIG_OPPO_ROOT_CHECK`, vendor USB-driver surfaces) are not proven device-specific vulnerabilities because the exact installed image and source lineage are missing.
+
 ## Current Objective
-Phase 7 reverse engineering, Phase 8 evidence reconciliation, Phase 9 static path audit, and Phase 10 DeepTesting end-to-end reverse engineering are **COMPLETE**. The token verifier `verify_unlock_token()` (RAM `0x6002EB00`–`0x6002EDCC`) hashes the 16-byte token serial field, passes the resulting 32-byte digest to `0x600567C0`, and the latter performs RSASSA-PSS SHA-256 with salt length 32 and trailer byte `0xBC`. Fastboot commands are strictly registered post-verification. Stock recovery has no direct audited references to the security partitions. In Phase 10, static reverse engineering of the decompiled OEM DeepTesting APK (`com.coloros.deeptesting`), system framework (`services.vdex`), and native HAL (`vendor.oppo.engnative.engineer@1.0-service`) fully resolved the token origin, AES-128-ECB payload encryption, framework routing via `OppoEngineerManager.fastbootUnlock`, native partition persistence to `reserve4` sector `0x7816` (`0x00F02C00`), and Little Kernel handoff. Full test suite passes 41/41 unit tests.
+Phase 7 reverse engineering, Phase 8 evidence reconciliation, Phase 9 static path audit, Phase 10 root-surface audit, Phase 11 evidence validation, and Phase 12 provenance closure are **COMPLETE**. The invariant remains: no exact CPH1859 C.50 vendor source, direct matching boot image, or exact runtime symbolized kernel was recovered, so the evidence bound holds. The token verifier `verify_unlock_token()` (RAM `0x6002EB00`–`0x6002EDCC`) is still confirmed in the recovered C.49/C.50 reference images, but it does not imply a proven path to UID 0 on the exact live device in the absence of the installed kernel source. Full test suite passes 41/41 unit tests.
+
+## Phase 11 final status
+The evidence review completed with a negative conclusion: no confirmed Android-root path identified from the available evidence. The direct, non-speculative outcome is that the strongest candidate remains a kernel USB-driver EoP under `CVE-2020-0404`, but the exact installed vendor implementation, backport status, and exploit reachability are not established. The project therefore records the evidence boundary explicitly rather than manufacturing a vulnerability claim.
 
 ## Current Status
 - **Confirmed Verification Results:**
