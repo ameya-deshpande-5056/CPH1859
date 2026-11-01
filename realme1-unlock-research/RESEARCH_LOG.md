@@ -429,4 +429,32 @@
     - `rootkit/scripts/00_preloader_entry_guide.sh` through `05_final_assessment.sh`
     - `rootkit/README.md`
 - **Device Modification Status:** **UNMODIFIED** (100% factory state preserved; no exploits or harmful payloads executed).
+## 2026-11-01 — Phase 16: GhostLock Symbol Extraction & Offset Scaffold
+
+- **Objective:** Resolve the remaining GhostLock port blockers for CPH1859: symbol resolution and kernel 4.4 struct offsets.
+- **Completed actions:**
+  - Decrypted `CPH1859EX_11_OTA_0500.ozip` with `oppo_ozip_decrypt`; extracted and decompressed the CPH1859 C.50 kernel image.
+  - Confirmed `KIMAGE_TEXT_BASE = 0xffffff8008080000` and ARM64 Image text offset `0x80000` (effective size `0x0200d000`).
+  - Recovered critical GhostLock symbols from `work/kernel_cph1859.elf` via `nm`: `commit_creds`, `prepare_kernel_cred`, `remove_waiter`, `rt_mutex_start_proxy_lock`, `futex_requeue`, `futex_lock_pi`, `futex_wake`, `rt_mutex_setprio`, `task_blocks_on_rt_mutex`, `try_to_take_rt_mutex`, `kallsyms_lookup_name`, `configfs_read_file`, `configfs_write_file`.
+  - No ELF export for `init_task`, `init_cred`, `init_uts_ns`, `init_user_ns`, `init_groups`, `mark_wakeup_next_waiter`, `ashmem_fops`, `anon_pipe_buf_ops`, `selinux_enforcing`, `security_hook_heads`, or `kptr_restrict`; remaining symbols recovered through targeted disassembly or kallsyms token parsing.
+  - Derived additional structure offsets:
+    - `task_struct.cred = 0x748`, `task_struct.real_cred = 0x750`, `task_struct.pi_lock = 0x814`
+    - `task_struct.prio = 0x80`, `task_struct.normal_prio = 0x88`
+    - `task_struct.pi_waiters` (rb_root) = `0x820`, `task_struct.pi_blocked_on` = `0x830`
+    - `rt_mutex_waiter.tree_entry` = `0x00`, `rt_mutex_waiter.pi_tree_entry` = `0x18`, `rt_mutex_waiter.task` = `0x30`, `rt_mutex_waiter.lock` = `0x38`, `rt_mutex_waiter.prio` = `0x40`
+    - `pipe_inode_info.bufs` = `0x68`, `pipe_buffer.page` = `0x00`, `pipe_buffer.ops` = `0x20`
+- **Artifacts produced:**
+  - `rootkit/scripts/extract_cph_symbols.py` — cross-references `kernel_cph1859.elf` via `nm` and writes `rootkit/cph1859_symbols.json`.
+  - `rootkit/cph1859_symbols.json` — KASLR-aware symbol offset table.
+  - `rootkit/GHOSTLOCK_OFFSETS.md` — recovered/derived offsets and TODO list.
+- **Implementation scaffolding:**
+  - `rootkit/tools/ghostlock/exploit/targets/cph1859-c50/target.h` — scaffolded target offsets for a CPH1859 4.4.146+ kernel.
+  - `rootkit/tools/ghostlock/exploit/Makefile.cph` — build scaffold for `preload_cph.so` on the CPH1859 target.
+- **Remaining work:**
+  - Recover missing symbols (`init_task`, `ashmem_fops`, `anon_pipe_buf_ops`, `selinux_enforcing`, `security_hook_heads`, `kptr_restrict`).
+  - Complete full `task_struct`, `rt_mutex_waiter`, `pipe_inode_info`, `pipe_buffer`, and `cred` layouts.
+  - Confirm `PHYS_OFFSET`/`memstart_addr` for MediaTek MT6771.
+  - Handle OPPO vendor `is_bootloader_unlocked` SELinux checks in `sel_write_enforce`.
+  - Port the 4.14 PoC to 4.4.146+, adapt struct layouts, handle configfs legacy calls, and build/test with Android NDK r29.
+- **Safety status:** No exploit code built or run; device remains 100% factory state.
 

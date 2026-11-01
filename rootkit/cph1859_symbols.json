@@ -1,0 +1,118 @@
+{
+  "kernel_text_base": 18446743524088479744,
+  "symbols": {
+    "commit_creds": {
+      "relative_off": 311632,
+      "va": 18446743524088791376,
+      "type": "T"
+    },
+    "prepare_kernel_cred": {
+      "relative_off": 312616,
+      "va": 18446743524088792360,
+      "type": "T"
+    },
+    "override_creds": {
+      "relative_off": 312428,
+      "va": 18446743524088792172,
+      "type": "T"
+    },
+    "revert_creds": {
+      "relative_off": 312476,
+      "va": 18446743524088792220,
+      "type": "T"
+    },
+    "init_task": {
+      "status": "MISSING"
+    },
+    "init_cred": {
+      "status": "MISSING"
+    },
+    "init_uts_ns": {
+      "status": "MISSING"
+    },
+    "init_user_ns": {
+      "status": "MISSING"
+    },
+    "init_groups": {
+      "status": "MISSING"
+    },
+    "remove_waiter": {
+      "relative_off": 617352,
+      "va": 18446743524089097096,
+      "type": "t"
+    },
+    "rt_mutex_start_proxy_lock": {
+      "relative_off": 615872,
+      "va": 18446743524089095616,
+      "type": "T"
+    },
+    "rt_mutex_slowlock": {
+      "relative_off": 13422976,
+      "va": 18446743524101902720,
+      "type": "t"
+    },
+    "futex_requeue": {
+      "relative_off": 830812,
+      "va": 18446743524089310556,
+      "type": "t"
+    },
+    "futex_lock_pi": {
+      "relative_off": 835520,
+      "va": 18446743524089315264,
+      "type": "t"
+    },
+    "futex_wake": {
+      "relative_off": 822964,
+      "va": 18446743524089302708,
+      "type": "t"
+    },
+    "rt_mutex_setprio": {
+      "relative_off": 366064,
+      "va": 18446743524088845808,
+      "type": "T"
+    },
+    "task_blocks_on_rt_mutex": {
+      "relative_off": 616496,
+      "va": 18446743524089096240,
+      "type": "t"
+    },
+    "try_to_take_rt_mutex": {
+      "relative_off": 616028,
+      "va": 18446743524089095772,
+      "type": "t"
+    },
+    "mark_wakeup_next_waiter": {
+      "status": "MISSING"
+    },
+    "ashmem_fops": {
+      "status": "MISSING"
+    },
+    "anon_pipe_buf_ops": {
+      "status": "MISSING"
+    },
+    "selinux_enforcing": {
+      "status": "MISSING"
+    },
+    "security_hook_heads": {
+      "status": "MISSING"
+    },
+    "kallsyms_lookup_name": {
+      "relative_off": 880288,
+      "va": 18446743524089360032,
+      "type": "T"
+    },
+    "kptr_restrict": {
+      "status": "MISSING"
+    },
+    "configfs_read_file": {
+      "relative_off": 2179168,
+      "va": 18446743524090658912,
+      "type": "t"
+    },
+    "configfs_write_file": {
+      "relative_off": 2179472,
+      "va": 18446743524090659216,
+      "type": "t"
+    }
+  }
+}

@@ -1,3 +1,11 @@
+## Phase 16 status (2026-11-01) — GhostLock symbol blocker resolved; struct-offset work in progress
+
+- Symbol extraction for CPH1859 C.50 is COMPLETE: full critical symbol set recovered via `vmlinux-to-elf` plus targeted disassembly (see `rootkit/CVE_2026_43499_FEASIBILITY.md` §2).
+- Implemented `rootkit/scripts/extract_cph_symbols.py` → `rootkit/cph1859_symbols.json` (KASLR-aware offsets; verified via `nm`).
+- First structure field offsets recovered from disassembly: `task_struct.cred = 0x748`, `task_struct.real_cred = 0x750`, `task_struct.pi_lock = 0x814`.
+- Memory layout partially recovered: `KIMAGE_TEXT_BASE = 0xffffff8008080000`, ARM64 Image text offset `0x80000`, effective size `0x0200d000`.
+- Remaining GhostLock port work: derive full `task_struct`/`rt_mutex_waiter`/`pipe_inode_info`/`pipe_buffer`/`cred` offsets, confirm `PHYS_OFFSET`/`memstart_addr`, handle OPPO `is_bootloader_unlocked` check in `sel_write_enforce`, adapt 4.14 PoC to 4.4.146+, and build/test with Android NDK r29.
+- No exploit code has been built or run; device remains in 100% factory state.
 # Next Agent Handoff: Realme 1 (CPH1859) Bootloader Unlock Research
 
 ## Phase 15 final status (2026-11-01)

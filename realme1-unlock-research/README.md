@@ -61,6 +61,8 @@ python3 -m realme1_unlock_research.cli --format both --out artifacts/diagnostic_
 python3 -m realme1_unlock_research.cli --monitor-usb --duration 5.0
 ```
 
+- `GHOSTLOCK_OFFSETS.md`: Recovered struct/symbol offsets for the GhostLock port to CPH1859 C.50.
+- `cph1859_symbols.json`: Machine-readable KASLR-aware symbol offsets produced by `extract_cph_symbols.py`.
 ## Diagnostic Test Taxonomy
 
 Every test executed by the tool is labeled with one of the following statuses:

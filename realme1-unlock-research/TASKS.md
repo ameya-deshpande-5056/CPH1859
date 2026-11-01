@@ -328,6 +328,18 @@
 - **Next Step:** Disassemble service binary; enumerate IEngineer HIDL methods; analyze caller-check branches.
 
 ---
+### E-004: GhostLock symbol/header scaffold for CPH1859
+
+- **Status:** IN PROGRESS
+- **Objective:** Complete the GhostLock (CVE-2026-43499) port to the CPH1859 C.50 kernel: recover missing symbols, produce target offsets, and prepare the Android NDK build scaffold.
+- **Required Inputs:** `work/kernel_cph1859.elf`, `work/kernel_cph1859_c50.decompressed`, Android NDK 29 toolchain, CPH1859 4.4 device info.
+- **Actions Performed:**
+  - Decrypted/obfuscation-free extraction of the CPH1859 C.50 kernel; confirmed `KIMAGE_TEXT_BASE`.
+  - Implemented `rootkit/scripts/extract_cph_symbols.py`; generated `rootkit/cph1859_symbols.json`.
+  - Recovered critical symbol offsets via `nm` and disassembly (task_struct/cred/pi_lock fields, pipe offsets).
+  - Added `rootkit/GHOSTLOCK_OFFSETS.md` and scaffolded `targets/cph1859-c50/target.h` plus `Makefile.cph`.
+- **Evidence & Artifact References:** `rootkit/cph1859_symbols.json`, `rootkit/GHOSTLOCK_OFFSETS.md`.
+- **Next Step:** Recover remaining exported symbols; finish struct layouts; verify offsets against MT6771 4.4.146+ vendor kernel; finalize `target.h` and make buildable.
 
 ### AUDIT-003: Final Root Assessment & CVE-2026-43499 Feasibility
 

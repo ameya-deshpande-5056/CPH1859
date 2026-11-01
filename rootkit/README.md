@@ -47,3 +47,7 @@ All procedures and tests documented in this suite adhere strictly to non-destruc
 - **Factory state preservation:** Device remains 100% factory state.
 - **No untested exploit execution:** Exploit binaries are not executed on live hardware to avoid kernel panics or bootloops.
 
+
+## Additional deliverables
+- `GHOSTLOCK_OFFSETS.md` — recovered struct/symbol offsets for the GhostLock port.
+- `cph1859_symbols.json` — machine-readable KASLR-aware symbol offset table.
