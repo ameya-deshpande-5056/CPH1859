@@ -71,4 +71,4 @@
 
 1. **Mathematical Verification vs Hardware Trust:** Mathematical verification proves internal consistency of the certificate chain (Key C1 -> Key C2 -> cert2 -> payload digest). However, hardware trust on the device requires that `SHA256(Key C1)` matches the hash burned into SoC SBC EFUSE registers. Static analysis cannot observe physical efuse bits.
 2. **Fastboot Token Orthogonality:** Fastboot gating does not query `cert1` or `cert2`. It verifies partition `reserve4` sector `0x7816` using an independent OEM public key modulus hardcoded at RAM `0x6007EE48`.
-3. **Firmware Compatibility Warning:** Build C.50 is an `oppo6771_17065` codebase historically targeted for CPH1861. It must not be assumed safe to flash onto CPH1859, preserving the project's non-invasive read-only policy.
+3. **Firmware Compatibility Warning:** Build C.50 is an `oppo6771_17065` codebase historically targeted for CPH1861. It must not be assumed safe to flash onto CPH1859, preserving the project's non-invasive safety policy.

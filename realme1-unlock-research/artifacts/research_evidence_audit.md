@@ -1,7 +1,7 @@
 # Research Evidence Audit: Realme 1 CPH1859 Unlock Study
 
 **Date:** 2026-10-21  
-**Scope:** Read-only audit of the supplied binaries, scripts, artifacts, and recorded device observations. This revision adds an instruction-level LK/PSS argument trace, a conservative preloader call-site scan, and a correction separating string-table offsets from executable entry points.
+**Scope:** Diagnostic audit of the supplied binaries, scripts, artifacts, and recorded device observations. This revision adds an instruction-level LK/PSS argument trace, a conservative preloader call-site scan, and a correction separating string-table offsets from executable entry points.
 
 ## Bottom line
 
@@ -119,5 +119,5 @@ No confirmed exploitable defect was found. The LK gate, serial binding, PSS chec
 
 The strings `trigger BROM` (raw `0x371f4`) and `Force brom` (raw `0x3917e`) disassemble as data, not code. Their presence cannot establish that either reset routine is a host command handler. The unresolved edges include table-based dispatch, `BLX` register calls, the USB handshake/DA receive path, fuse/configuration-dependent branches, and the origin of the reset wrapper's mode values. This is why the emergency path remains **internal-recovery supported but host-triggerability unknown**.
 
-The single highest-value next read-only step is to acquire and authenticate the exact CPH1859 C.50 `lk`, preloader, and recovery images (or a signed package whose model and partition provenance are independently established), then rerun the same differential and preloader call-site audit. The historical DeepTesting APK is the next best step for reconstructing token serialization, but it cannot by itself demonstrate a bypass.
+The single highest-value next step is to acquire and authenticate the exact CPH1859 C.50 `lk`, preloader, and recovery images (or a signed package whose model and partition provenance are independently established), then rerun the same differential and preloader call-site audit. The historical DeepTesting APK is the next best step for reconstructing token serialization, but it cannot by itself demonstrate a bypass.
 

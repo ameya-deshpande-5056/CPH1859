@@ -45,7 +45,7 @@ The image exposes MTK-specific debugfs/proc/sysfs and device-driver interfaces, 
 
 **Classification:** unresolved applicability; `UNKNOWN`.
 
-For each candidate above, the necessary next step is exact-image function-level comparison against the fixing commit/backport and policy-guided reachability analysis. Live triggering is outside this read-only audit and was not performed.
+For each candidate above, the necessary next step is exact-image function-level comparison against the fixing commit/backport and policy-guided reachability analysis. Live triggering is outside this audit and was not performed.
 
 ## Kernel conclusion
 

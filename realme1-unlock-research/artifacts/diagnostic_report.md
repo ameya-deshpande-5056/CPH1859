@@ -4,7 +4,7 @@
 > Generated on: 2026-10-21T10:22:25.469766+05:30  
 > Tool Version: 0.1.0  
 > Host OS: Linux (x86_64)  
-> Safety Guarantee: Strictly Read-Only (Non-Invasive) — Zero Partition Writes / Erases
+> Safety Guarantee: Strictly Safe (Non-Invasive) — Zero Partition Writes / Erases
 
 ## Executive Summary
 

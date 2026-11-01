@@ -1,11 +1,11 @@
 # Realme 1 (CPH1859) Diagnostic & Unlock Research Tool
 
-A lightweight, strictly read-only Python 3 CLI tool designed for Linux Mint to inspect device state, Android system properties, verified boot posture, and USB interfaces of the Realme 1 (CPH1859, MediaTek MT6771 / Helio P60) running ColorOS.
+A lightweight Python 3 CLI tool designed for Linux Mint to inspect device state, Android system properties, verified boot posture, and USB interfaces of the Realme 1 (CPH1859, MediaTek MT6771 / Helio P60) running ColorOS.
 
 ## Safety Policy & Guarantees
 
 > [!IMPORTANT]
-> **Strict Read-Only Enforcement:**
+> **Strict Safety Enforcement:**
 > - Never executes flash (`fastboot flash`, `flashing`), erase (`fastboot erase`), format, partition-write (`dd`), or unlock commands.
 > - An internal security engine inspects all attempted subprocess executions and raises `CommandSecurityViolation` if any dangerous keyword or argument is supplied.
 > - Zero hardware disassembly or testpoint shorting required.
@@ -73,4 +73,11 @@ Every test executed by the tool is labeled with one of the following statuses:
 
 - The tool does NOT modify bootloader state, generate cryptographic tokens, or bypass manufacturer verification.
 - Offline device detection relies on USB bus enumeration (`lsusb`).
+
+## Companion Root & Vulnerability Assessment Suite
+
+For on-device verification scripts, root capability assessments, and kernel vulnerability feasibility studies (including CVE-2026-43499 / GhostLock), see the companion [`rootkit/`](../rootkit/README.md) suite:
+- [`FINAL_ROOT_ASSESSMENT.md`](../rootkit/FINAL_ROOT_ASSESSMENT.md): Consolidated report on device security posture, ADB capabilities, and software-only root vectors.
+- [`CVE_2026_43499_FEASIBILITY.md`](../rootkit/CVE_2026_43499_FEASIBILITY.md): Feasibility analysis of the futex priority-inheritance UAF (GhostLock) against kernel `4.4.146+`.
+
 

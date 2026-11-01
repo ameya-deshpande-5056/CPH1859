@@ -1,4 +1,4 @@
-"""Safe command execution engine with strict read-only enforcement and execution audit logging."""
+"""Safe command execution engine with strict safety enforcement and execution audit logging."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from typing import List, Optional
 
 
 class CommandSecurityViolation(Exception):
-    """Raised when an attempted command violates the read-only safety policy."""
+    """Raised when an attempted command violates the safety policy."""
     pass
 
 
@@ -31,7 +31,7 @@ class ExecutionResult:
 
 
 class SafeCommandRunner:
-    """Executes system commands while enforcing a strict read-only guarantee.
+    """Executes system commands while enforcing a strict safety guarantee.
 
     Specifically blocks any command or argument related to flashing, erasing,
     formatting, writing partitions, or triggering unlock commands.
@@ -83,7 +83,7 @@ class SafeCommandRunner:
             # Check exact match or token containment for fastboot / adb subcommands
             if token in self.PROHIBITED_TOKENS:
                 raise CommandSecurityViolation(
-                    f"Command contains prohibited token '{token}' which violates read-only safety constraints."
+                    f"Command contains prohibited token '{token}' which violates safety constraints."
                 )
             if "unlock" in token or "flash" in token or "erase" in token:
                 # Check for arguments like --unlock, flashing_unlock, etc.

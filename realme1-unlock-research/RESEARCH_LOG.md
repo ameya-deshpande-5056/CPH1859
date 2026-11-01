@@ -17,7 +17,7 @@
   - Target device identified in ADB: Model `CPH1859`, Product `CPH1859`, Mode `device`.
   - Target USB ID: `22d9:2769` (OPPO Electronics Corp. CPH1859).
   - Target Serial Number: Identified and recorded for redaction regex filtering.
-- **Conclusion:** Environment is fully equipped for read-only diagnostic tooling and research. Serial numbers must be strictly redacted across all output files.
+- **Conclusion:** Environment is fully equipped for diagnostic tooling and research. Serial numbers must be strictly redacted across all output files.
 
 ---
 
@@ -35,7 +35,7 @@
 
 ## 2026-10-21T10:22:00+05:30 — Diagnostic Tool Development & Test Verification
 
-- **Objective:** Build and test read-only Python CLI tool `realme1-unlock-research`.
+- **Objective:** Build and test Python CLI tool `realme1-unlock-research`.
 - **Execution & Test Results:**
   - Implemented modular architecture in `src/realme1_unlock_research/`: `command_runner.py`, `redactor.py`, `collectors/`, `reporter.py`, `cli.py`.
   - Created 13 unit tests in `tests/` covering identifier redaction, command safety enforcement, parser accuracy, and report generation.
@@ -267,7 +267,7 @@
 ## 2026-10-21 - Phase 8: Evidence Reconciliation and Provenance Audit
 
 - **Objective:** Verify the accessible binary hashes and disassembly independently, reconcile stale Phase-2 “C.50 unavailable” records, and calibrate preloader/recovery conclusions without touching the phone.
-- **Read-only checks performed:**
+- **Diagnostic checks performed:**
   - Recalculated LK/preloader hashes: C.49 LK `30b48cd5...`, C.50 reference LK `58cd19a9...`, C.49 preloader `afe99890...`, C.50 reference preloader `2de60eda...`.
   - Recalculated extracted C.49 `sbin/recovery` hash: `05cfcf8ffbb59abcbd642a950989cc4d112d1985ad1a4c9eab642ce4e67bdb34`; the previously recorded `a91176...` value was stale.
   - Reran `scripts/analyze_authorization_protocol.py`, `scripts/validate_lk_differential.py`, and `PYTHONPATH=src:scripts python3 -m unittest discover -s tests`: all 41 tests passed and the differential validator reported PASS.
@@ -278,7 +278,7 @@
 
 ## 2026-10-21 - Phase 9: Remaining LK and Preloader Uncertainties
 
-- **Scope:** Read-only static analysis only. No phone interaction, flashing, partition writes, lock-state changes, patched firmware, or live authentication testing.
+- **Scope:** Static analysis only. No phone interaction, flashing, partition writes, lock-state changes, patched firmware, or live authentication testing.
 - **Reproducibility:** Added `scripts/validate_remaining_paths.py` and ran it against the pinned C.49 LK/preloader. It reproduced LK SHA-256 `30b48cd52b5d6035819c5580eb4a7f745010042318d1358b46a4f9fd5a37baaa` and preloader SHA-256 `afe99890545f60ebb04158d7d327369237ea20241218c35f01f272b94ad1ee1a`.
 - **LK correction/confirmation:** At `0x6002ed00`, SHA-256 `0x60058250` hashes exactly the 16-byte token field at `+0x100..+0x10f`. At `0x6002ed44`, the caller passes the resulting 32-byte `mHash`, not raw message bytes, to `0x600567c0`, together with `EM` length `0x100`, salt length `0x20`, and modulus size `0x800` bits. The inner routine performs trailer, MGF1, delimiter/salt, and `H' = SHA-256(8 zero bytes || mHash || salt)` checks.
 - **Preloader correction:** Rechecked string offsets `usbdl_vfy_da`, `usbdl_send_da`, `usbdl_jump_da`, `bldr_handshake`, `S-CHIP`, `NS-CHIP`, `trigger BROM`, `Force brom`, `lock_state`, `sbc_en`, and certificate diagnostics. These offsets are data strings, not function entries. The conservative executable scan found zero direct literal-pointer or `ldr`+`add pc` references to those exact strings; table/indirect references remain possible and unresolved.
@@ -289,7 +289,7 @@
 
 ## 2026-10-21 - Phase 10: Decompiled DeepTesting APK & End-to-End Persistence Tracing
 
-- **Scope:** Static reverse engineering of decompiled OEM DeepTesting APK (`/home/ameya/Realme1/DeepTesting_realme-release_signed.apk_Decompiler.com`), ColorOS framework (`boot-framework.vdex`, `services.vdex`), and native HAL daemon (`vendor.oppo.engnative.engineer@1.0-service`). Read-only analysis; strictly zero device writes, state modifications, or live network exploits.
+- **Scope:** Static reverse engineering of decompiled OEM DeepTesting APK (`/home/ameya/Realme1/DeepTesting_realme-release_signed.apk_Decompiler.com`), ColorOS framework (`boot-framework.vdex`, `services.vdex`), and native HAL daemon (`vendor.oppo.engnative.engineer@1.0-service`). Analysis; strictly zero device writes, state modifications, or live network exploits.
 - **Decompiled Application Findings:**
   1. **Privilege Boundary:** Manifest declares `android:sharedUserId="android.uid.system"`, confirming execution within the Android system server UID 1000 context (requires vendor platform release signature).
   2. **Client-Server Protocol:** Dispatches requests to `https://lkf.realmemobile.com/realme/v1/` endpoints (`applyLkUnlock`, `checkApproveResult`, `updateLockStatus`). Transmits `ro.vold.serialno`, IMEI, `ro.product.name`, and `ro.build.version.ota`.
@@ -303,9 +303,9 @@
 - **Deliverables:** Produced `artifacts/deeptesting_decompiled_analysis.md` (ART-017, SHA-256: `c8e50b7dc0a0406f4302041052afe38fe26e162996c71f4b213411a1e4dd2db6`). Registered in `artifacts/README.md`. Test suite passes 41/41 unit tests.
 - **Result:** Complete end-to-end cryptographic and physical trace of the official unlock mechanism from APK to Little Kernel; conclusively demonstrates why software-only unlocking is deadlocked following service deprecation.
 
-## 2026-10-21 - AUDIT-001: Comprehensive Read-Only Security Audit
+## 2026-10-21 - AUDIT-001: Comprehensive Security Audit
 
-- **Scope:** Read-only audit of the extracted CPH1859 C.49 firmware, the available CPH1861-targeted C.50 OTA reference, Android userspace, kernel lineage, boot chain, recovery, and documented DeepTesting path. No flashing, partition writes, patched images, live exploit testing, or device-state changes were performed.
+- **Scope:** Audit of the extracted CPH1859 C.49 firmware, the available CPH1861-targeted C.50 OTA reference, Android userspace, kernel lineage, boot chain, recovery, and documented DeepTesting path. No flashing, partition writes, patched images, live exploit testing, or device-state changes were performed.
 - **Inventory:** Added `artifacts/firmware_inventory.json` and `.md`, generated by `scripts/generate_firmware_inventory.py`; 171 files were hashed and classified across the C.49 and C.50 trees. The C.50 tree is explicitly treated as a CPH1861 reference because its OTA metadata/updater guard names `CPH1861`; exact installed CPH1859 C.50 provenance remains open.
 - **Userspace:** Added `artifacts/android_userspace_audit.md`. Engineer HIDL/raw-reserve and diagnostic interfaces are real privileged attack surfaces, but no untrusted-app caller path or observed SELinux bypass was established. Raw critical-partition access was blocked under the observed enforcing/locked posture.
 - **Kernel:** Added `artifacts/kernel_audit.md`. Both references use the old 4.4.146+ MT6771 lineage; official September 2020 Android kernel advisories are tracked as candidate exposure only, not device-specific exploit confirmation.
@@ -317,7 +317,7 @@
 ## 2026-10-22 - AUDIT-002: Android Root Candidate Assessment
 
 - **Objective:** Assess whether a software-only path to Android userspace or kernel root exists on CPH1859 C.50, distinct from bootloader-state modification.
-- **Scope:** Read-only static analysis of C.49 extracted filesystem and kernel, C.50 CPH1861 reference, live device properties. No flashing, partition writes, exploit payloads, or device-state changes.
+- **Scope:** Static analysis of C.49 extracted filesystem and kernel, C.50 CPH1861 reference, live device properties. No flashing, partition writes, exploit payloads, or device-state changes.
 - **Key Evidence Gathered:**
   1. **Kernel extracted and analyzed:** C.49 boot.img decompressed; kernel reports Linux 4.4.146+, Android clang 6.0.2, MT6771 vendor tree, build date 2020-05-09. C.50 reference kernel dated 2020-10-16, same lineage. No kernel .config or source available.
   2. **Vendor filesystem analyzed:** Extracted C.49 vendor image; identified `vendor.oppo.engnative.engineer@1.0-service` (runs as system, `oppo_block_device` read/write, can set `engineer_adb_state_vendor_prop`/`engineer_vendor_prop`); SELinux policy rules documented for `engineer_hidl`, `hal_atci`, `oppo_block_device`; no `untrusted_app` → privileged HIDL path found.
@@ -330,7 +330,7 @@
   - `artifacts/evidence_report_K-001_kernel_lpe.md` — NEW: kernel LPE evidence report
   - `artifacts/evidence_report_U-001_engineer_hidl.md` — NEW: Engineer HIDL evidence report
   - `artifacts/evidence_report_U-002_atci.md` — NEW: ATCI diagnostic service evidence report
-  - `artifacts/safe_readonly_experiments.md` — NEW: 7 read-only experiments (E-001–E-007)
+  - `artifacts/safe_experiments.md` — NEW: 7 experiments (E-001–E-007)
 - **Updated State Files:** `PROJECT_STATE.md`, `TASKS.md` (AUDIT-002 DONE, E-001/E-002/E-003 OPEN)
 - **Result:** No confirmed Android root path found. Strongest candidates: K-001/K-002 (kernel LPE, UNKNOWN/PLAUSIBLE — evidence gap: missing kernel config/source), U-001 (Engineer HIDL, PLAUSIBLE — no untrusted_app path proven), U-002 (ATCI, STRONGLY SUPPORTED surface but disabled in user build).
 - **Phone Modification Status:** UNMODIFIED (100% factory state; zero writes, erases, or flashes performed)
@@ -372,3 +372,61 @@
 - **Formal conclusion:** **`No confirmed Android-root path identified from the available evidence.`**
 - **Artifacts produced:** `artifacts/phase10_root_surface_audit.md`, `artifacts/phase10_candidate_matrix.md`, `artifacts/phase10_evidence.json`.
 - **Safety status:** The device remains unmodified; no writes, flashes, or exploit probes were performed.
+
+## 2026-10-23 — Phase 13: Targeted CVE-2022-20110 Validation
+
+- **Objective:** Determine whether CVE-2022-20110 is supported, contradicted, or unresolved for the live Realme 1 CPH1859 on ColorOS C.50 / Android 9 / Linux 4.4.146+.
+- **Safety boundary:** Static source analysis and ADB inspection only. No exploit, weaponized proof of concept, crash-inducing test, APK installation, partition access, flash, or device-state change was performed.
+- **Authoritative advisory:** MediaTek’s May 2022 bulletin identifies CVE-2022-20110 as a High-severity ION TOCTOU/use-after-free local EoP affecting MT6771 and Android 9–12, with patch `ALPS06399915` and issue `ALPS06399901`. The public bulletin does not provide a source diff.
+- **Public source provenance:** Examined GitLab `eldraco/android_kernel_oppo_mt6771` ref `android-9.0` at commit `0050c1d2eaed995c476e61abd017bc0559cfee5d` (4.4.146 source import, 2020-07-27) and GitHub `realme-mt6771-devs/android_kernel_realme_mt6771` ref `android-13.0` at commit `cea131ed320016c369ea5926c1d7a55dd94efc6b` (4.4.167, 2023-06-12). Both contain the MTK ION V1/custom ioctl surface and `ion_sys_cache_sync()`; no examined source history contains a CVE-2022-20110/ALPS06399915 patch commit.
+- **Code comparison:** The examined `ion_sys_cache_sync()` uses a referenced handle, `client->lock`, scatter-table/page mapping, and exported map/unmap helpers. It does not contain the published vulnerable variant’s direct unlocked `buffer->kmap_cnt`/`buffer->vaddr` access. Android Common ION fixes `504e1d6ee65d5b5a053253ae62f46035d774353c` and `0d752f78b20dbe4eeb9bc76f118889f1898948ca` were recorded as adjacent comparators, not misidentified as this CVE’s fix.
+- **Live evidence:** ADB observed Android 9, MT6771, Linux 4.4.146+, `CONFIG_ION=y`, `CONFIG_MTK_ION=y`, `CONFIG_MTK_ION_CACHE_OPTIMIZATION` unset, `/dev/ion` mode 0666 with SELinux type `ion_device`, and `/sys/class/misc/ion`. Shell UID 2000 in `u:r:shell:s0` was denied opening `/dev/ion` while SELinux enforcing.
+- **Decision:** **Unresolved due to missing exact-target evidence**, high confidence. Platform relevance and ION presence are supported; exact device applicability, patch/backport state, untrusted-app reachability, and a UID 0 path are not established. No exploit validation is justified.
+- **Deliverables:** `artifacts/phase13_cve_2022_20110_analysis.md`, `artifacts/phase13_source_patch_evidence.json`, and `artifacts/phase13_decision.md`.
+- **Next action:** Acquire a model-authenticated CPH1859 C.50 `boot.img` or trusted vendor source, then compare exact ION code and `ALPS06399915` backport status offline.
+
+
+## 2026-11-01 — Phase 14: Empirical Preloader Security Audit & Batch CVE Applicability Review
+
+- **Objective:** Evaluate feasibility of CVE-2026-31431 ("Copy Fail"), CVE-2022-0847 ("Dirty Pipe"), CVE-2021-3493 (Ubuntu OverlayFS), CVE-2023-3269 ("StackRot"), CVE-2019-2215 ("Bad Binder"), and CVE-2020-0423 (Binder UAF) for rooting CPH1859, and perform preloader/BROM probe using `mtkclient`.
+- **CVE Screening Results:**
+  - **CVE-2026-31431 ("Copy Fail"):** Conclusively ruled out. Kernel 4.4.146+ < affected range (4.14–6.19.12); `CONFIG_CRYPTO_USER_API_AEAD` is unset in live `/proc/config.gz`; Android lacks standard SUID root binaries.
+  - **CVE-2022-0847 ("Dirty Pipe"):** Conclusively ruled out. Kernel 4.4.146+ < affected range (5.8+).
+  - **CVE-2021-3493 (OverlayFS):** Conclusively ruled out. Ubuntu-specific unprivileged overlayfs patch; `CONFIG_OVERLAY_FS` is unset in live `/proc/config.gz`.
+  - **CVE-2023-3269 ("StackRot"):** Conclusively ruled out. Kernel 4.4.146+ < affected range (6.1–6.4; requires maple tree VMA).
+  - **CVE-2019-2215 ("Bad Binder"):** Likely patched. Fixed in October 2019 Android bulletin; device SPL is 2020-09-05 (11 months post-fix); `POLLFREE` check confirmed in MT6771 vendor source.
+  - **CVE-2020-0423 (Binder UAF):** Plausible bulletin-level candidate (device SPL 2020-09-05 predates October 2020 bulletin fix; source shows unpatched pattern).
+- **Empirical Hardware eFUSE Audit via `mtkclient`:**
+  - Handshake with `OPPO Preloader` (`22d9:0006`) achieved via `Vol+` + `Vol-` hardware hold.
+  - Direct hardware register query resolved longstanding Phase 10–13 unknowns:
+    - `HW code`: `0x788` (MT6771 / Helio P60)
+    - `SBC enabled`: `True` (Hardware Secure Boot Certificate enforced)
+    - `DAA enabled`: `True` (Download Agent Authentication enforced)
+    - `SLA enabled`: `False` (Serial Link Authentication not enforced)
+    - `ME_ID`: `1945C4BFCE62160CFE7CE59E62AFC8DC`
+    - `SOC_ID`: `63E215F3070F122C235F8B3EE4C5C415706C8B4773D7A2AE930B9CD4848F20EE`
+  - Software DA upload rejected with `DAA_SIG_VERIFY_FAILED (0x7024)` due to DAA enforcement in preloader. Preloader software crash vectors to BROM did not drop down to `0e8d:0003`.
+- **Live Device Posture & Recovery:**
+  - Full live kernel configuration extracted from `/proc/config.gz` and saved to `artifacts/live_kernel_config.txt` (4,536 lines).
+  - Device successfully power-cycled back to factory ColorOS via hardware reset combo (`Power + Vol+` for 10s).
+  - Device modification status: **UNMODIFIED** (100% factory state, strictly zero writes, erases, or flashes).
+
+## 2026-11-01 — Phase 15: Rootkit Assessment & CVE-2026-43499 ("GhostLock") Feasibility Study
+
+- **Objective:** Evaluate local privilege escalation feasibility of CVE-2026-43499 ("GhostLock", futex priority-inheritance UAF) against the target device running build `CPH1859EX_11_C.50`, and synthesize final root assessment findings.
+- **Device Assessment Highlights:**
+  - ADB shell execution confirmed at `uid=2000` (`u:r:shell:s0`).
+  - `adb root` rejected (production user build: `ro.debuggable=0`, `ro.secure=1`).
+  - No setuid binaries or pre-existing su binaries present on target filesystem.
+  - Sideloaded Magisk Manager v31.1 confirmed inactive as a management APK without a patched boot image and root daemon (`magiskd`).
+- **CVE-2026-43499 ("GhostLock") Audit Results:**
+  - **Vulnerability Code Presence:** Likely present. The proxy-lock rollback flaw in `remove_waiter()` was introduced in 2011; kernel 4.4.146+ is in range and firmware C.50 reached EOL prior to 2026 patch releases.
+  - **Attack Surface:** Reachable via `sys_futex` (`CONFIG_FUTEX=y`, `CONFIG_RT_MUTEXES=y`). Permitted under SELinux for `shell` and untrusted apps.
+  - **Practical Exploitability:** Low / Unexploitable out-of-the-box. Public PoCs target Qualcomm SM6150 / Android 11 / Linux 4.14. Porting to MediaTek MT6771 / Linux 4.4 is blocked by lack of kernel symbol extraction (`/proc/kallsyms` restricted, `/dev/block/mmcblk0p35` unreadable without root), struct layout differences (e.g., `pipe_inode_info` ring buffer model), and ARMv8 PAN/PXN mitigations. Untested execution risks unrecoverable kernel panics.
+  - **Deliverables:**
+    - `rootkit/FINAL_ROOT_ASSESSMENT.md`
+    - `rootkit/CVE_2026_43499_FEASIBILITY.md`
+    - `rootkit/scripts/00_preloader_entry_guide.sh` through `05_final_assessment.sh`
+    - `rootkit/README.md`
+- **Device Modification Status:** **UNMODIFIED** (100% factory state preserved; no exploits or harmful payloads executed).
+

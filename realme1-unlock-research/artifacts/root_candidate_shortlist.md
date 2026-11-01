@@ -2,7 +2,7 @@
 
 **Scope:** Android userspace or kernel root only. Bootloader-state modification is treated as a separate downstream question.
 
-**Ranking criteria:** Evidential strength (confirmed → strongly supported → plausible → unknown), target applicability to CPH1859 C.50, feasibility under read-only constraints, and potential impact (root). Not ranked by how dramatic the exploit would be.
+**Ranking criteria:** Evidential strength (confirmed → strongly supported → plausible → unknown), target applicability to CPH1859 C.50, feasibility under safety constraints, and potential impact (root). Not ranked by how dramatic the exploit would be.
 
 ---
 

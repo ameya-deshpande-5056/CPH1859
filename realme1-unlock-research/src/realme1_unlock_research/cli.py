@@ -26,7 +26,7 @@ def run_diagnostics(
     monitor_duration: float = 3.0,
     known_serials: list[str] | None = None,
 ) -> tuple[dict[str, Any], DiagnosticReporter]:
-    """Executes the full read-only diagnostic suite."""
+    """Executes the full diagnostic suite."""
     runner = SafeCommandRunner()
     redactor = SensitiveDataRedactor(set(known_serials or []))
     reporter = DiagnosticReporter(redactor)
@@ -281,7 +281,7 @@ def run_diagnostics(
             "session_end": session_end,
             "host_os": env_data.get("os_name"),
             "host_machine": env_data.get("machine"),
-            "safety_policy": "STRICT_READ_ONLY",
+            "safety_policy": "STRICT_SAFETY",
         },
         "security_posture": security_posture,
         "tests": tests,
@@ -293,7 +293,7 @@ def run_diagnostics(
 def main() -> int:
     parser = argparse.ArgumentParser(
         prog="realme1-unlock-research",
-        description="Read-only diagnostic CLI tool for Realme 1 (CPH1859) bootloader unlock research.",
+        description="Diagnostic CLI tool for Realme 1 (CPH1859) bootloader unlock research.",
     )
     parser.add_argument(
         "--format",

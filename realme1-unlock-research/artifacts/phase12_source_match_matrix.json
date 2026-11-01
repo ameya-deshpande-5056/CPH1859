@@ -2,7 +2,7 @@
   "document": "phase12_source_match_matrix",
   "project": "Realme 1 CPH1859 kernel provenance audit",
   "execution_constraints": [
-    "Read-only audit only",
+    "Diagnostic audit only",
     "No flashing, write, or exploit execution",
     "Exact installed kernel provenance remains open"
   ],

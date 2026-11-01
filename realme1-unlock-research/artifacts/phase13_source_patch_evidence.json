@@ -1,0 +1,178 @@
+{
+  "document": "phase13_source_patch_evidence",
+  "phase": "13",
+  "candidate": "CVE-2022-20110",
+  "decision": "unresolved_due_to_missing_exact_target_evidence",
+  "confidence": "high",
+  "scope": [
+    "static source analysis",
+    "ADB inspection",
+    "no exploit execution",
+    "no device writes",
+    "no crash-inducing tests"
+  ],
+  "advisory": {
+    "cve": "CVE-2022-20110",
+    "authority": "MediaTek Product Security Bulletin",
+    "url": "https://www.mediatek.com/product-security-bulletin/May-2022",
+    "publication_date": "2022-05-03",
+    "title": "Time-of-check time-of-use (TOCTOU) race condition in ion",
+    "severity": "High",
+    "type": "local escalation of privilege",
+    "weakness": "CWE-367",
+    "description": "In ion, a race condition can cause a use after free; no additional execution privilege or user interaction is required according to the bulletin.",
+    "affected_chipset_includes": ["MT6771"],
+    "affected_android_versions": ["9.0", "10.0", "11.0", "12.0"],
+    "patch_id": "ALPS06399915",
+    "issue_id": "ALPS06399901",
+    "public_vendor_diff": "not_found"
+  },
+  "repositories": [
+    {
+      "name": "eldraco/android_kernel_oppo_mt6771",
+      "url": "https://gitlab.com/eldraco/android_kernel_oppo_mt6771",
+      "ref": "android-9.0",
+      "commit": "0050c1d2eaed995c476e61abd017bc0559cfee5d",
+      "commit_date": "2020-07-27T13:41:36Z",
+      "commit_title": "merged official kernel src into linux 4.4.146 kernel tag",
+      "makefile_kernel_version": "4.4.146",
+      "provenance_assessment": "credible Realme 1/CPH1859-family source lead; not authenticated exact CPH1859 C.50 source",
+      "history_observation": "The examined path history returned the import commit and no later CVE-2022-20110 patch commit.",
+      "files": [
+        {"path": "Makefile", "sha256": "9d88e650000ab88c5c3cf9a984c839875dab2b49e72739a4075bc03c4776cd85"},
+        {"path": "drivers/staging/android/ion/ion.c", "sha256": "d29500e53a3f220361d6ff83d7adcda8470c90006e17f8be0a9bc332fe5f7887"},
+        {"path": "drivers/staging/android/ion/ion.h", "sha256": "185d951f40c88b61ab6f30280c07064c2d75a34d4a4265bb4591ce01975f9748"},
+        {"path": "drivers/staging/android/ion/Kconfig", "sha256": "c6a01eb882d81e3e67435e1cb7626377df8e899fef49399804c36ea1457cd89"},
+        {"path": "drivers/staging/android/ion/mtk/ion_drv.c", "sha256": "1139ed636ab38b4682c3836242a96adcbb25ecf35741a53f5833ead2e4c6290b"},
+        {"path": "drivers/staging/android/ion/mtk/ion_drv.h", "sha256": "79b99288265d8e600f4b9758598e035ce0ae7c436e0701067496bec5564978af"}
+      ],
+      "relevant_paths": [
+        "drivers/staging/android/ion/ion.c",
+        "drivers/staging/android/ion/ion.h",
+        "drivers/staging/android/ion/mtk/ion_drv.c",
+        "drivers/staging/android/ion/mtk/ion_drv.h"
+      ],
+      "source_result": {
+        "ion_v1_present": true,
+        "mtk_custom_ioctl_present": true,
+        "ion_sys_cache_sync_present": true,
+        "direct_unlocked_buffer_kmap_cnt_access_in_ion_sys_cache_sync": false,
+        "published_cve_variant_proven": false,
+        "cve_fix_present": "unknown",
+        "exact_target_match": false
+      }
+    },
+    {
+      "name": "realme-mt6771-devs/android_kernel_realme_mt6771",
+      "url": "https://github.com/realme-mt6771-devs/android_kernel_realme_mt6771",
+      "ref": "android-13.0",
+      "commit": "cea131ed320016c369ea5926c1d7a55dd94efc6b",
+      "commit_date": "2023-06-12T08:29:33Z",
+      "commit_title": "videox: Completely bypass gamma subsystem to fix flickering issues",
+      "makefile_kernel_version": "4.4.167",
+      "provenance_assessment": "related Realme MT6771 development source; not exact CPH1859 C.50 provenance",
+      "history_observation": "The examined ION driver history contains legacy MediaTek changes and no commit mentioning CVE-2022-20110 or ALPS06399915.",
+      "files": [
+        {"path": "Makefile", "sha256": "41a670af9b72239ce5cb6ed230ca2908039b411a5751529cc6abcebfe792526f"},
+        {"path": "arch/arm64/configs/CPH1859_defconfig", "sha256": "1bac0d37ba5206c323056c4864f098bf7a055dbdbaa30368a88c8195a34cab71"},
+        {"path": "drivers/staging/android/ion/ion.c", "sha256": "61cda6f30552cb2b8a35a4b112a8a9e4df899ea8bc76b1eb85c281e8b1a8a381"},
+        {"path": "drivers/staging/android/ion/ion.h", "sha256": "185d951f40c88b61ab6f30280c07064c2d75a34d4a4265bb4591ce01975f9748"},
+        {"path": "drivers/staging/android/ion/mtk/ion_drv.c", "sha256": "1139ed636ab38b4682c3836242a96adcbb25ecf35741a53f5833ead2e4c6290b"},
+        {"path": "drivers/staging/android/ion/mtk/ion_drv.h", "sha256": "79b99288265d8e600f4b9758598e035ce0ae7c436e0701067496bec5564978af"}
+      ],
+      "source_result": {
+        "ion_v1_present": true,
+        "mtk_custom_ioctl_present": true,
+        "ion_sys_cache_sync_present": true,
+        "direct_unlocked_buffer_kmap_cnt_access_in_ion_sys_cache_sync": false,
+        "published_cve_variant_proven": false,
+        "cve_fix_present": "unknown",
+        "exact_target_match": false
+      }
+    }
+  ],
+  "authoritative_fix_comparators": [
+    {
+      "commit": "504e1d6ee65d5b5a053253ae62f46035d774353c",
+      "url": "https://android.googlesource.com/kernel/common/+/504e1d6ee65d5b5a053253ae62f46035d774353c",
+      "date": "2022-01-25",
+      "subject": "ion: Fix use after free during ION_IOC_ALLOC",
+      "assessment": "adjacent ION UAF fix; not identified as CVE-2022-20110 fix",
+      "files": [
+        {"path": "drivers/staging/android/ion/ion-ioctl.c", "sha256": "daf9592355e0397a0f07f26db185d9ca35e625c1178237d0942154ee06773b86"},
+        {"path": "drivers/staging/android/ion/ion.c", "sha256": "c2b2b1330040db4d77be2a2c6dfcbbdeecfa84f7e9f344aff913231ae39fcf92"},
+        {"path": "drivers/staging/android/ion/ion.h", "sha256": "c56ce1ac00ee6b8efe6960840057e46a5fb88f278c92a356061679b85521307a"}
+      ]
+    },
+    {
+      "commit": "0d752f78b20dbe4eeb9bc76f118889f1898948ca",
+      "url": "https://android.googlesource.com/kernel/common/+/0d752f78b20dbe4eeb9bc76f118889f1898948ca",
+      "date": "2022-05-09",
+      "subject": "BACKPORT: staging: ion: Prevent incorrect reference counting behavour",
+      "assessment": "adjacent ION reference-counting backport; not identified as CVE-2022-20110 fix",
+      "files": [
+        {"path": "drivers/staging/android/ion/ion_buffer.c", "sha256": "5ddd272e54885ee16e1a13561bfc1a0c6a8ae01a43518a9e35a372efe6db37b2"}
+      ]
+    }
+  ],
+  "target_observations": {
+    "model": "CPH1859",
+    "soc": "mt6771",
+    "android_version": "9",
+    "fingerprint": "OPPO/CPH1859/CPH1859:9/PPR1.180610.011/1601287606:user/release-keys",
+    "kernel_release": "4.4.146+",
+    "kernel_build": "#2 SMP PREEMPT Fri Oct 16 23:57:58 CST 2020 aarch64",
+    "security_patch": "2020-09-05",
+    "config": {
+      "CONFIG_ION": "y",
+      "CONFIG_MTK_ION": "y",
+      "CONFIG_DMA_SHARED_BUFFER": "y",
+      "CONFIG_MTK_ION_CACHE_OPTIMIZATION": "not_set",
+      "CONFIG_MTK_CACHE_FLUSH_RANGE_PARALLEL": "not_set"
+    },
+    "ion_device": {
+      "path": "/dev/ion",
+      "type": "character_device",
+      "mode": "0666",
+      "owner": "system",
+      "group": "graphics",
+      "selinux_type": "ion_device",
+      "sysfs": "/sys/class/misc/ion",
+      "shell_open": "denied_by_selinux",
+      "app_open": "not_observed"
+    },
+    "privilege": {
+      "adb_shell_uid": 2000,
+      "adb_shell_domain": "u:r:shell:s0",
+      "selinux_enforcing": true,
+      "untrusted_app_reachability": "not_observed"
+    },
+    "device_state": {
+      "ro.boot.flash.locked": "1",
+      "ro.boot.verifiedbootstate": "green",
+      "ro.boot.veritymode": "enforcing",
+      "device_modified": false
+    }
+  },
+  "evidence_gaps": [
+    "exact installed CPH1859 C.50 boot.img hash",
+    "exact installed vendor kernel source or symbolized kernel",
+    "exact CPH1859 C.50 ION implementation and build selection",
+    "public diff for ALPS06399915 / ALPS06399901",
+    "exact backport status in the live kernel",
+    "untrusted_app SELinux permission to open /dev/ion",
+    "validated trigger and post-corruption UID 0 path"
+  ],
+  "assessment": {
+    "platform_relevance": "supported",
+    "ion_enabled_on_target": "supported",
+    "candidate_source_surface": "supported",
+    "published_vulnerable_variant_in_examined_sources": "not_observed",
+    "exact_device_applicability": "unresolved",
+    "unprivileged_reachability": "not_observed",
+    "uid_0_path": "not_observed",
+    "exploit_executed": false,
+    "final_verdict": "unresolved_due_to_missing_exact_target_evidence",
+    "next_action": "Acquire a model-authenticated CPH1859 C.50 boot.img or trusted vendor source, then compare the exact ION implementation and ALPS06399915 backport offline."
+  }
+}

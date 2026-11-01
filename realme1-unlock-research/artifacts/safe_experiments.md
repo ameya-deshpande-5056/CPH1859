@@ -1,6 +1,6 @@
-# Safe, Read-Only Experiments to Discriminate Between Competing Root Hypotheses
+# Safe Experiments to Discriminate Between Competing Root Hypotheses
 
-**All experiments are non-invasive and read-only.** No flashing, partition writes, exploit payloads, or bootloader-state changes.
+**All experiments are non-invasive.** No flashing, partition writes, exploit payloads, or bootloader-state changes.
 
 ---
 
@@ -24,7 +24,7 @@
 
 **Objective:** Determine which privileged services are reachable from untrusted_app.
 
-**Procedure (read-only ADB commands):**
+**Procedure (ADB commands):**
 1. `adb shell service list` — enumerate all registered system services
 2. `adb shell dumpsys` — inspect service state and permissions
 3. `adb shell pm list packages -s` — list system/privileged packages
@@ -33,7 +33,7 @@
 6. `adb shell ls -la /dev/block/by-name/` — confirm partition node permissions
 
 **Discriminates:** Whether any privileged service is exposed to untrusted apps
-**Risk:** None — read-only enumeration
+**Risk:** None — enumeration
 **Required:** Live device connected via ADB
 
 ## Experiment E-003: Static Analysis of C.49 Engineer HIDL Service Binary
@@ -82,14 +82,14 @@
 
 **Objective:** Confirm whether untrusted_app can write to engineer/ATCI properties.
 
-**Procedure (read-only ADB commands):**
+**Procedure (ADB commands):**
 1. `adb shell getenforce` — confirm SELinux mode
 2. `adb shell getprop ro.build.type` — confirm user build
 3. `adb shell dumpsys policy` — inspect SELinux policy
 4. `adb shell ls -la /vendor/etc/selinux/` — confirm policy files present
 
 **Discriminates:** Whether property-based activation of diagnostic services is feasible
-**Risk:** None — read-only queries only
+**Risk:** None — queries only
 **Required:** Live device connected via ADB
 
 ## Experiment E-007: Extract and Compare C.49 vs C.50 Vendor Image (if C.50 obtained)

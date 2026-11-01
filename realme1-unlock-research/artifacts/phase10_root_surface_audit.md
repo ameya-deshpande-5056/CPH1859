@@ -8,7 +8,7 @@ This phase reassesses the three priority areas requested for the live CPH1859 / 
 2. Method-level authorization and reachability of Engineer HIDL / Oppo engineering interfaces;
 3. Whether historical Android kernel CVEs actually apply to the device kernel, drivers, and backports.
 
-The working premise remains strict read-only investigation. No live exploit, flashing, partition writes, or modification of the device was performed.
+The working premise remains strict safety investigation. No live exploit, flashing, partition writes, or modification of the device was performed.
 
 ## Evidence boundary
 

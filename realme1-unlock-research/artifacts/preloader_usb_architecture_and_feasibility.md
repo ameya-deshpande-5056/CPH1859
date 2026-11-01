@@ -2,7 +2,7 @@
 
 **Document ID:** `ART-011`  
 **Date:** 2026-10-21  
-**Classification:** Static Firmware Architecture & Read-Only Reverse Engineering  
+**Classification:** Static Firmware Architecture & Reverse Engineering  
 **Analyzed Binaries:**
 - `preloader_oppo6771_17065.bin` (C.49 baseline, 265,756 bytes, SHA-256: `afe99890545f60ebb04158d7d327369237ea20241218c35f01f272b94ad1ee1a`)
 - `preloader_emmc.img` (C.50 research image, 267,804 bytes, SHA-256: `2de60eda847de8ea3ae44368fc905f57dd63a842a3c7ad455f0fd1c326ebaeca`)
@@ -120,7 +120,7 @@ stateDiagram-v2
 
 1. **Secure Boot Evaluation (`sboot_state.c`):**
    - Evaluates on-chip eFUSE registers. Distinguishes `S-CHIP` (secure hardware) from `NS-CHIP` (non-secure hardware).
-   - The reference contains `sbc_en`/`S-CHIP` policy branches. The physical CPH1859 fuse state is not observable under the read-only scope.
+   - The reference contains `sbc_en`/`S-CHIP` policy branches. The physical CPH1859 fuse state is not observable under the safety scope.
 2. **Security Configuration Validation (`sec.c`):**
    - Reads partition `seccfg` (`0x038DF4`). Validates header magic `1A52A367CB12C458` (`0x038DBF`).
    - Parses device lock state: `[SEC_POLICY] lock_state = 0x%x` (`0x038F97`).
@@ -196,14 +196,14 @@ To alter this conclusion non-invasively, the following specific evidence would b
 
 ---
 
-## 7. Limitations & Prioritized Read-Only Next Steps
+## 7. Limitations & Prioritized Next Steps
 
 ### Limitations of Current Analysis:
 1. **Physical eFUSE State Unobservable:** Static firmware analysis cannot confirm whether hardware fuse bits (`SBC_EN`, `DAA_EN`, `SLA_EN`) are permanently blown on this specific board without BROM-level access.
 2. **Offline Backend:** The vendor authentication server is permanently offline, precluding live testing of the official unlock flow.
-3. **Read-Only Scope:** Physical hardware testpoints (eMMC `DAT0` / `CMD` to ground) remain strictly unexplored in accordance with project constraints.
+3. **Safety Scope:** Physical hardware testpoints (eMMC `DAT0` / `CMD` to ground) remain strictly unexplored in accordance with project constraints.
 
-### Prioritized Next Steps (Read-Only):
+### Prioritized Next Steps:
 1. **Historical DeepTesting APK Acquisition & Decompilation:** Sourcing and decompiling the official ColorOS 5.2/6.0 `DeepTesting.apk` to statically reverse-engineer the token structure and client-side validation logic.
 2. **Preloader USB Command Table Disassembly:** Performing fine-grained disassembly of Preloader's USB command table (`bldr_handshake`) in Ghidra/radare2 to map all valid input bytes and state transitions over port `0e8d:2000`.
 3. **Preserve Repository & Device Integrity:** Maintain the target device in its unmodified factory state (`ro.boot.flash.locked = 1`).

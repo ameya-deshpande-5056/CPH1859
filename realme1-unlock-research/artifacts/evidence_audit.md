@@ -69,7 +69,7 @@ To ensure absolute technical rigor and prevent speculative assertions from masqu
 - **What is Inferred:**
   `mtkclient` documentation indicates that 2020 preloader updates patched the USB buffer overflow crash payloads (`0x1d18`/`0x1d1a`). Build C.50 has a security patch level of `2020-09-05` and a build date of `2020-10-16`.
 - **What Remains Uncertain:**
-  We have not directly tested USB preloader handshake payloads against this physical device due to read-only safety constraints. Stating that C.50 definitively returns `0x1d18` is an inference based on firmware dating, not an experimental observation.
+  We have not directly tested USB preloader handshake payloads against this physical device due to safety constraints. Stating that C.50 definitively returns `0x1d18` is an inference based on firmware dating, not an experimental observation.
 
 ### Area 5: Hardware Testpoint Requirement
 - **What is Source-Reported:**

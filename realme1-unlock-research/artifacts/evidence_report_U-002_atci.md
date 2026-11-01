@@ -91,7 +91,7 @@ If `atcid` (system) has a vulnerability (command injection, unsafe parsing), an 
 - No binary vulnerability analysis performed on atcid/atci_service
 - Exact C.50 vendor image unavailable
 
-## 4. Safe Read-Only Next Steps
+## 4. Safe Next Steps
 
 1. Check property_contexts for `persist.vendor.service.atci.autostart` write rules
 2. Statically analyze atcid and atci_service binaries for command injection/unsafe parsing

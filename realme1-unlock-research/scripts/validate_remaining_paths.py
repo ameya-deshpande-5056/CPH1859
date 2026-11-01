@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only checks for the remaining LK/preloader audit.
+"""Diagnostic checks for the remaining LK/preloader audit.
 
 This intentionally does not emulate USB, talk to a device, or modify any
 firmware.  It records only reproducible offsets, hashes, direct Thumb call

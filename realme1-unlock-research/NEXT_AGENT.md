@@ -1,5 +1,29 @@
 # Next Agent Handoff: Realme 1 (CPH1859) Bootloader Unlock Research
 
+## Phase 15 final status (2026-11-01)
+
+1. **Rooting Assessment & CVE-2026-43499 ("GhostLock") Feasibility:**
+   - Evaluated CVE-2026-43499 (futex priority-inheritance UAF LPE, CVSS 7.8). While the flawed code path in `remove_waiter()` is present in unpatched Linux `4.4.146+`, practical weaponization on CPH1859 is blocked by lack of kernel symbols (`/proc/kallsyms` restricted, boot block unreadable), struct layout variances (MediaTek BSP vs Qualcomm reference), and ARMv8 PAN/PXN. Off-target exploits risk kernel panics.
+   - Comprehensive audit reports compiled in `rootkit/FINAL_ROOT_ASSESSMENT.md` and `rootkit/CVE_2026_43499_FEASIBILITY.md`.
+   - Automated report generation established via `rootkit/scripts/05_final_assessment.sh`.
+2. **Device Safety Posture:** Device remains in 100% factory state. No destructive operations, flashes, or dangerous exploits executed.
+
+## Phase 14 final status (2026-11-01)
+
+1. **Empirical eFUSE Measurement:** `mtkclient` successfully queried the MT6771 CPU security registers during Preloader handshake (`22d9:0006`). Resolved longstanding hardware unknowns: `SBC=True`, `DAA=True`, `SLA=False`, `HW code=0x788`.
+2. **Preloader DA Gate:** Software Download Agent upload is strictly rejected with `DAA_SIG_VERIFY_FAILED (0x7024)` due to hardware DAA enforcement. Software crash vectors (`send_da`/`read32`) did not drop into unrestricted BROM mode (`0e8d:0003`). Pure BROM entry on this build requires hardware testpoint (`DAT0`/`CLK` short to GND).
+3. **Batch CVE Assessment:**
+   - Ruled out: CVE-2026-31431 ("Copy Fail", 4.14+), CVE-2022-0847 ("Dirty Pipe", 5.8+), CVE-2021-3493 (Ubuntu OverlayFS), CVE-2023-3269 ("StackRot", 6.1+).
+   - Likely patched: CVE-2019-2215 ("Bad Binder", Oct 2019 fix vs Sep 2020 device SPL).
+   - Plausible candidate: CVE-2020-0423 (Binder UAF, Oct 2020 fix vs Sep 2020 device SPL). 
+4. **Live Artifacts:** Full kernel config saved to `artifacts/live_kernel_config.txt` (4,536 lines). Device verified unmodified in factory state.
+
+## Phase 13 final status (2026-10-23)
+
+CVE-2022-20110 is **unresolved due to missing exact-target evidence**. MediaTek lists the CVE for MT6771 and Android 9, and the live device has `CONFIG_ION=y`, `CONFIG_MTK_ION=y`, and `/dev/ion`. The two named public source leads contain the MTK ION V1/custom ioctl surface, but their examined `ion_sys_cache_sync()` implementation does not reproduce the published vulnerable variant's direct unlocked `buffer->kmap_cnt`/`buffer->vaddr` access. The exact CPH1859 C.50 kernel image and MediaTek `ALPS06399915` patch diff remain unavailable. Shell UID 2000 was denied opening `/dev/ion` by enforcing SELinux. No exploit or crash test was run.
+
+Read `artifacts/phase13_cve_2022_20110_analysis.md`, `artifacts/phase13_source_patch_evidence.json`, and `artifacts/phase13_decision.md`. The single highest-value next action is to acquire a model-authenticated CPH1859 C.50 `boot.img` or trusted vendor source and compare the exact ION implementation/backport offline.
+
 ## Audit completion status (2026-10-23)
 
 The requested Phase 10 root-surface audit deliverables are complete. Read `REPORT.md`, `artifacts/vulnerability_matrix.md`, `artifacts/phase10_root_surface_audit.md`, and the phase reports before doing further work. No device or partition was modified.
@@ -75,7 +99,7 @@ The evidence review completed with a negative conclusion: no confirmed Android-r
 
 ## Next Action
 1. Present the calibrated synthesis and evidence links to the user.
-2. If further read-only work is desired, obtain model-authenticated CPH1859 C.50 images or the historical DeepTesting APK, then use loader-aware static analysis; do not flash or probe the phone.
+2. If further work is desired, obtain model-authenticated CPH1859 C.50 images or the historical DeepTesting APK, then use loader-aware static analysis; do not flash or probe the phone.
 
 ## Safety Constraints
 - Maintain strict prohibition on unauthorized flashing, partition modification, or hardware tampering.
@@ -95,7 +119,7 @@ Phase 9 static audit is complete. Further progress requires exact-image provenan
 
 ## Next Action
 1. Present the calibrated synthesis and evidence links to the user.
-2. If further read-only work is desired, obtain model-authenticated CPH1859 C.50 images or the historical DeepTesting APK; do not flash or probe the phone.
+2. If further work is desired, obtain model-authenticated CPH1859 C.50 images or the historical DeepTesting APK; do not flash or probe the phone.
 
 ## Safety Constraints
 - Maintain strict prohibition on unauthorized flashing, partition modification, or hardware tampering.

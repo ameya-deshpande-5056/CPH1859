@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a read-only manifest for the locally available C.49/C.50 trees."""
+"""Generate a manifest for the locally available C.49/C.50 trees."""
 
 from __future__ import annotations
 

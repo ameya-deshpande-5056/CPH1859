@@ -2,11 +2,11 @@
 
 ## Authoritative Progress Indicator
 
-- **Project Status:** READ-ONLY SECURITY AUDIT COMPLETE / PHASE 12 KERNEL PROVENANCE AUDIT COMPLETE / NO CONFIRMED ANDROID-ROOT PATH IDENTIFIED / EXACT CPH1859 C.50 PROVENANCE STILL OPEN / KERNEL LPE CANDIDATES REMAIN UNRESOLVED WITHOUT EXACT INSTALL IMAGE
-- **Current Phase:** Phase 12 kernel provenance audit and source-match closure
-- **Current Task ID & Description:** PHASE12-001: Inventory every kernel and source artifact, determine whether any public or local source matches the exact CPH1859 lineage, and record the exact evidence boundary for the remaining kernel root candidates without overstating certainty
-- **Overall Completion Estimate:** The available evidence supports a disciplined negative conclusion: no confirmed Android-root path has been established from the current read-only evidence. The decisive missing fact remains the exact installed CPH1859 C.50 kernel image and vendor patch provenance; generic Linux/CVE matches do not prove a device-specific exploit path.
-- **Current Phase Sub-phase:** Phase 12 provenance / source-match audit / final kernel candidate reassessment
+- **Project Status:** SECURITY AUDIT COMPLETE / PHASE 15 ROOT & CVE-2026-43499 FEASIBILITY COMPLETE / NO CONFIRMED ANDROID-ROOT PATH IDENTIFIED / EXACT CPH1859 C.50 PROVENANCE STILL OPEN
+- **Current Phase:** Phase 15 Rooting Assessment & CVE Feasibility Evaluation
+- **Current Task ID & Description:** PHASE13-001: Determine whether CVE-2022-20110 is supported, contradicted, or unresolved for the live CPH1859 C.50 device using authoritative advisory data, exact public-source refs, and ION observations
+- **Overall Completion Estimate:** The available evidence supports a disciplined negative conclusion: no confirmed Android-root path has been established from the current evidence. The decisive missing fact remains the exact installed CPH1859 C.50 kernel image and vendor patch provenance; generic Linux/CVE matches do not prove a device-specific exploit path.
+- **Current Phase Sub-phase:** Phase 13 ION source comparison / patch provenance / SELinux reachability boundary
 - **Overall Completion Estimate:** All prior root-surface and kernel reviews are complete; exact installed CPH1859 C.50 image provenance remains open, but the project now records its final boundary explicitly: no confirmed Android-root path identified from the available evidence, and no exact source-backed kernel privilege-escalation chain proven for the live device.
 - **Last Completed Milestone:** Verified the C.49 extracted artifacts, the CPH1861-targeted C.50 OTA reference, and the live-device kernel config; documented the absence of an exact installed CPH1859 C.50 kernel image or vendor source tree; reassessed the strongest kernel candidates (`CVE-2020-0404`, `CONFIG_OPPO_ROOT_CHECK`, vendor USB-driver surfaces) against exact provenance and source-availability requirements.
 - **Formal Project Outcome:** **`NO CONFIRMED ANDROID-ROOT PATH IDENTIFIED FROM THE AVAILABLE EVIDENCE.`** — The exact installed CPH1859 C.50 image and vendor kernel source remain absent, so every remaining kernel LPE candidate stays unresolved rather than proven. This project therefore records the strict evidence boundary: no confirmed root path is established, but the evidence does not justify claiming all root paths are ruled out in absolute terms because the exact image provenance is still incomplete.
@@ -19,16 +19,17 @@
   6. **Cryptographic Role of `cert2`:** MediaTek Secure Boot v2 Content Certificate verified by Preloader during LK loading from flash. Contains payload digest (OID `2.16.886.2454.2.1`) and RSASSA-PSS signature signed by intermediate key `Key C2` (certified by Root Key `Key C1` in `cert1`). It is decoupled from runtime Fastboot execution and token validation.
   7. **Spelling Discrepancy Resolved:** The string `fastboot_unlock_verity` is completely absent from C.49 LK, C.50 LK, and Preloader. Both C.49 and C.50 contain `fastboot_unlock_verify fail\n\n` at `0x080BFC`. The observed string on the device screen was an optical/transcription artifact on the low-resolution LCD console.
   8. **Preloader Code Identity:** C.49 and C.50 Preloaders are 100% code-identical after normalizing the 2,048-byte `EMMC_BOOT` header.
-  9. **CPH1861 Variant Safety Warning:** C.50 firmware is an `oppo6771_17065` codebase historically targeted for CPH1861. It must not be assumed safe to flash onto CPH1859, preserving the project's non-invasive read-only policy.
+  9. **CPH1861 Variant Safety Warning:** C.50 firmware is an `oppo6771_17065` codebase historically targeted for CPH1861. It must not be assumed safe to flash onto CPH1859, preserving the project's non-invasive safety policy.
   10. **Exact PSS input:** At `0x6002ed44`, LK passes a precomputed 32-byte `mHash` from SHA-256 over token bytes `+0x100..+0x10f`; `0x600567C0` performs PSS encoding checks and does not receive raw message bytes.
   11. **Preloader call-graph correction:** `usbdl_*`, `bldr_handshake`, `S-CHIP`/`NS-CHIP`, and BROM offsets are diagnostic/source strings, not proven function entry points. Conservative direct/PC-relative references to them were not found; table/indirect dispatch remains unknown.
   12. **Emergency reset:** Executable watchdog routines at raw `0x2ae34`, `0x2ae44`, and `0x2aef0` have direct internal callers/transfers. The BROM strings do not establish a host-triggerable command path.
   13. **DeepTesting End-to-End Pipeline Proven:** Decompiled APK analysis proves `unlockCode` was fetched from `https://lkf.realmemobile.com`, decoded from 544 hex chars to 272 binary bytes, transferred via `OppoEngineerManager.fastbootUnlock` to HAL daemon `vendor.oppo.engnative.engineer@1.0-service`, and written directly to sector `0x7816` (`0x00F02C00`) of `/dev/block/.../reserve4`. Exit-test zeroing writes a single `0x00` byte. APK v1.0.1 explicitly requires model prefix `RMX` (excluding `CPH1859`). Decommissioning of the backend completely closes the official software authorization route.
+  14. **Rooting Assessment & CVE-2026-43499 ("GhostLock") Feasibility Audited:** Non-destructive testing confirmed shell execution at `uid=2000`, locked bootloader, and production user build rejecting `adb root`. Linux `4.4.146+` contains the unpatched futex rollback code path for CVE-2026-43499, but weaponization is blocked without kernel symbols/offsets and strictly constrained by ARMv8 PAN/PXN. Off-target exploits risk unrecoverable kernel panics. Documented in `rootkit/FINAL_ROOT_ASSESSMENT.md` and `rootkit/CVE_2026_43499_FEASIBILITY.md`.
 - **Next Three Actions (Prioritized):**
   1. Acquire model-authenticated CPH1859 C.50 OTA; extract boot.img; perform kernel CVE backport analysis (E-001)
-  2. Enumerate exported Binder/HIDL services on live device via read-only ADB (E-002)
+  2. Enumerate exported Binder/HIDL services on live device via ADB (E-002)
   3. Statically analyze Engineer HIDL service binary for caller-check vulnerabilities (E-003)
-- **Last Updated:** 2026-10-21T18:12:00+05:30
+- **Last Updated:** 2026-10-23T00:00:00+05:30
 - **Current Git Branch:** main
 - **Relevant Artifact Paths:**
   - `realme1-unlock-research/artifacts/deeptesting_decompiled_analysis.md` (ART-017)
@@ -41,7 +42,7 @@
   - `realme1-unlock-research/artifacts/evidence_report_K-001_kernel_lpe.md` **(NEW: kernel LPE evidence)**
   - `realme1-unlock-research/artifacts/evidence_report_U-001_engineer_hidl.md` **(NEW: Engineer HIDL evidence)**
   - `realme1-unlock-research/artifacts/evidence_report_U-002_atci.md` **(NEW: ATCI diagnostic service evidence)**
-  - `realme1-unlock-research/artifacts/safe_readonly_experiments.md` **(NEW: read-only experiment plan)**
+  - `realme1-unlock-research/artifacts/safe_experiments.md` **(NEW: experiment plan)**
   - `realme1-unlock-research/artifacts/authorization_protocol.md` (ART-012)
   - `realme1-unlock-research/artifacts/alternative_unlock_paths.md` (ART-013)
   - `realme1-unlock-research/artifacts/security_findings.md` (ART-014)

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "realme1-unlock-research"
 version = "0.1.0"
-description = "Read-only diagnostic tool for Realme 1 (CPH1859) bootloader unlock research"
+description = "Diagnostic tool for Realme 1 (CPH1859) bootloader unlock research"
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [

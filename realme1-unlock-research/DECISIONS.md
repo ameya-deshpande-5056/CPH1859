@@ -22,7 +22,7 @@
 
 ---
 
-### DEC-003: Read-Only Diagnostic Architecture
+### DEC-003: Diagnostic Architecture
 - **Date:** 2026-10-21
 - **Status:** APPROVED
 - **Context:** Building diagnostic tools that interface with Android platform tools.

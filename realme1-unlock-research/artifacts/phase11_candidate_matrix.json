@@ -1,6 +1,6 @@
 {
   "document": "phase11_candidate_matrix",
-  "project": "Realme 1 (CPH1859) read-only device audit",
+  "project": "Realme 1 (CPH1859) device audit",
   "status": "No confirmed Android-root path identified from the available evidence.",
   "evidence_threshold": "Specific user-to-UID-0 escalation path must be proven with exact kernel/source and reachability evidence.",
   "candidates": [

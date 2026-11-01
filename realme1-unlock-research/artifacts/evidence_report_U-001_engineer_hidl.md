@@ -70,7 +70,7 @@ If `IEngineer` HIDL methods lack proper caller identity checks, a caller that ca
 - Exact C.50 vendor image unavailable — C.49 findings may not apply to installed C.50
 - Service runs as `system`, not `root` — requires secondary privilege escalation for full root
 
-## 5. Safe Read-Only Next Steps
+## 5. Safe Next Steps
 
 1. Extract exact C.50 vendor image (obtain model-authenticated CPH1859 C.50 OTA)
 2. Statically enumerate all IEngineer HIDL methods from the service binary

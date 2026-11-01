@@ -4,7 +4,7 @@
 **Firmware Version:** Realme 1 (CPH1859) ColorOS C.49 (`CPH1859EX_11_C.49_200509_868b7e2c`)  
 **Target Binaries:** `lk.img`, `preloader_oppo6771_17065.bin`, `MT6771_Android_scatter.txt`  
 **Analysis Date:** 2026-10-21  
-**Methodology:** Read-only static container parsing and ARMv7/Thumb-2 disassembly via Python 3 and Capstone 5.0.7  
+**Methodology:** Static container parsing and ARMv7/Thumb-2 disassembly via Python 3 and Capstone 5.0.7  
 
 ---
 
@@ -364,7 +364,7 @@ No heavy or proprietary reverse-engineering suites are necessary on Linux Mint:
 
 ---
 
-## 8. Reproducible Read-Only Validation Commands
+## 8. Reproducible Validation Commands
 
 Execute these commands from any terminal to reproduce the findings:
 

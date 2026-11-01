@@ -50,6 +50,17 @@ htmlcov/
 *.ofp
 *.zip
 *.tar.gz
+*.apk
+*.log
+
+# Local device backups and firmware dumps
+backup/
+
+# Rootkit assessment tools and scratch directories
+rootkit/tools/
+rootkit/backup/
+rootkit/work/
+rootkit/magisk/
 
 # IDE and OS
 .idea/

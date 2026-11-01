@@ -72,7 +72,7 @@ Source: [Android Security Bulletin—September 2020](https://source.android.com/
 
 ---
 
-## 4. Safe Read-Only Next Steps
+## 4. Safe Next Steps
 
 1. **Obtain model-authenticated CPH1859 C.50 boot.img** (do not flash)
 2. **Extract kernel** from boot.img (gzip-decompress at offset 0)

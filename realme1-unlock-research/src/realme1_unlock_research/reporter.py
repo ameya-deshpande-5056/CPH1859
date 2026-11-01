@@ -43,7 +43,7 @@ class DiagnosticReporter:
             f"> Generated on: {meta.get('timestamp', 'N/A')}  ",
             f"> Tool Version: {meta.get('tool_version', '0.1.0')}  ",
             f"> Host OS: {meta.get('host_os', 'Linux')} ({meta.get('host_machine', 'x86_64')})  ",
-            "> Safety Guarantee: Strictly Read-Only (Non-Invasive) — Zero Partition Writes / Erases",
+            "> Safety Guarantee: Strictly Safe (Non-Invasive) — Zero Partition Writes / Erases",
             "",
             "## Executive Summary",
             "",

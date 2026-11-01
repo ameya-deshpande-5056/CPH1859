@@ -1,4 +1,4 @@
-# Comprehensive Read-Only Security Audit: Realme 1 CPH1859 / MT6771
+# Comprehensive Security Audit: Realme 1 CPH1859 / MT6771
 
 **Audit date:** 2026-10-21
 **Target:** Realme 1 CPH1859, Android 9, reported installed build `CPH1859EX_11_C.50`

@@ -32,11 +32,24 @@
 | **P008** | Reconcile evidence, provenance, and preloader uncertainty | **DONE** | P007 | Phase 8 |
 | **P009** | Resolve LK/PSS data flow, preloader DA-call uncertainty, and emergency reset reachability | **DONE** | P008 | Phase 9 |
 | **P010** | Reverse-engineer decompiled DeepTesting APK and map end-to-end token handoff | **DONE** | P009 | Phase 10 |
-| **AUDIT-001** | Comprehensive read-only firmware/userspace/kernel/boot-chain audit and deliverables | **DONE** | P010 | Audit |
+| **AUDIT-001** | Comprehensive firmware/userspace/kernel/boot-chain audit and deliverables | **DONE** | P010 | Audit |
 | **PHASE10-001** | `CONFIG_OPPO_ROOT_CHECK`, Engineer HIDL/ATCI authorization, and historical CVE applicability root-surface audit | **DONE** | AUDIT-001 | Phase 10 |
 | **PHASE11-001** | Re-validate all Phase 10 findings against the artifact set and record the final evidence-based kernel LPE conclusion without invented exploit claims | **DONE** | PHASE10-001 | Phase 11 |
 | **PHASE12-001** | Inventory all recoverable kernel and source artifacts, determine whether any public or local source matches the exact CPH1859 lineage, and record the final provenance boundary for the outstanding kernel candidates | **DONE** | PHASE11-001 | Phase 12 |
 | **PHASE12-002** | Reassess the residual LPE candidates (`CVE-2020-0404`, vendor USB drivers, `CONFIG_OPPO_ROOT_CHECK`) against exact source and reachability requirements and keep the conclusion evidence-bound | **DONE** | PHASE12-001 | Phase 12 |
+| **PHASE13-001** | Targeted static validation of CVE-2022-20110 against CPH1859 C.50 | **DONE — UNRESOLVED DUE TO MISSING EXACT-TARGET EVIDENCE** | PHASE12-002 | Phase 13 |
+
+## Phase 13 Task Details
+
+### PHASE13-001: CVE-2022-20110 targeted kernel LPE validation
+
+- **Status:** DONE — unresolved due to missing exact-target evidence.
+- **Scope:** Authoritative MediaTek/Android advisory review, exact-ref public-source provenance, static ION source comparison, ADB inspection, no exploit execution, no crash-inducing test, and no device writes.
+- **Sources examined:** GitLab `eldraco/android_kernel_oppo_mt6771` commit `0050c1d2eaed995c476e61abd017bc0559cfee5d` (`android-9.0`, 4.4.146); GitHub `realme-mt6771-devs/android_kernel_realme_mt6771` commit `cea131ed320016c369ea5926c1d7a55dd94efc6b` (`android-13.0`, 4.4.167); Android Common ION comparator commits `504e1d6ee65d5b5a053253ae62f46035d774353c` and `0d752f78b20dbe4eeb9bc76f118889f1898948ca`.
+- **Target observations:** live Android 9 / MT6771 / Linux 4.4.146+, `CONFIG_ION=y`, `CONFIG_MTK_ION=y`, `/dev/ion` present and labeled `ion_device`; shell open denied by enforcing SELinux.
+- **Result:** Platform relevance and ION surface are supported, but the examined source does not reproduce the published vulnerable variant, exact CPH1859 C.50 image/patch state is missing, untrusted-app reachability is not observed, and no UID 0 path is supported.
+- **Deliverables:** `artifacts/phase13_cve_2022_20110_analysis.md`, `artifacts/phase13_source_patch_evidence.json`, `artifacts/phase13_decision.md`.
+- **Next action:** Acquire model-authenticated exact CPH1859 C.50 kernel provenance and perform offline code/backport comparison; do not run an exploit on the phone.
 
 ---
 
@@ -136,7 +149,7 @@
 
 ### R005: Preloader USB Architecture, Command Dispatch & Unlock Feasibility
 - **Status:** DONE
-- **Objective:** Perform static, read-only reverse engineering on MediaTek MT6771 Preloader binaries (`preloader_oppo6771_17065.bin` and `preloader_emmc.img`). Map GFH header, source modules, USB CDC ACM interface (`0e8d:2000`), command-dispatch routines (`bldr_handshake`, `usbdl_send_da`, `usbdl_vfy_da`, `usbdl_jump_da`), state transitions, and security policies (`sboot_state.c`, `sec.c`, `sec_auth.c`, `partition.c`). Synthesize findings across Little Kernel, Preloader, and Fastboot initialization to assess software-only bootloader unlock feasibility and identify precise non-invasive evidence gaps.
+- **Objective:** Perform static reverse engineering on MediaTek MT6771 Preloader binaries (`preloader_oppo6771_17065.bin` and `preloader_emmc.img`). Map GFH header, source modules, USB CDC ACM interface (`0e8d:2000`), command-dispatch routines (`bldr_handshake`, `usbdl_send_da`, `usbdl_vfy_da`, `usbdl_jump_da`), state transitions, and security policies (`sboot_state.c`, `sec.c`, `sec_auth.c`, `partition.c`). Synthesize findings across Little Kernel, Preloader, and Fastboot initialization to assess software-only bootloader unlock feasibility and identify precise non-invasive evidence gaps.
 - **Required Inputs:** `~/Realme1/C49_extracted/preloader_oppo6771_17065.bin`, `~/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t/preloader_emmc.img`, `~/Realme1/C49_extracted/lk.img`, `~/Realme1/C50_research/CPH1861EX_11_OTA_0500_all_fLuS0Ipoe93t/lk.img`.
 - **Actions Performed:** Verified GFH Header Type 0 structure (`0x5050001` eMMC, SRAM load address `0x00200F10`, entry `0x00201000`); identified source module paths; decoded USB state machine and command-dispatch pathways; analyzed Download Agent verification logic (`usbdl_vfy_da:disabled` with hardware SLA enforcement in `sec_auth.c`); confirmed Watchdog emergency BootROM trigger (`0x0371F4`); documented Fastboot Watchdog reset mechanism (`0x6000CD30` writing `0x1971` to `0x10007000`); verified CPH1859 vs CPH1861 model codebase relationships; formulated comprehensive epistemic evidence table (confirmed/inferred/unknown); produced research artifact `artifacts/preloader_usb_architecture_and_feasibility.md` (`ART-011`).
 - **Evidence & Artifact References:** `artifacts/preloader_usb_architecture_and_feasibility.md` (ART-011).
@@ -201,7 +214,7 @@
 
 ### F003: C.49 Little Kernel Container Layout & Static Reverse Engineering
 - **Status:** DONE
-- **Objective:** Perform static, read-only reverse engineering on extracted C.49 bootloader binaries (`lk.img`, `preloader_oppo6771_17065.bin`, `MT6771_Android_scatter.txt`). Identify container format, payload boundaries, base load address, processor architecture, instruction mode switches, and reconstruct fastboot token verification / unlock permission logic.
+- **Objective:** Perform static reverse engineering on extracted C.49 bootloader binaries (`lk.img`, `preloader_oppo6771_17065.bin`, `MT6771_Android_scatter.txt`). Identify container format, payload boundaries, base load address, processor architecture, instruction mode switches, and reconstruct fastboot token verification / unlock permission logic.
 - **Required Inputs:** `~/Realme1/C49_extracted/lk.img`, `preloader_oppo6771_17065.bin`, `MT6771_Android_scatter.txt`.
 - **Actions Performed:** Verified SHA-256 hashes; identified MediaTek `union prt_img_hdr` container layout (magic `0x58881688`/`0x58891689`, payload size `0x000b70cc`, `cert1` at `0xb72d0`, `cert2` at `0xb7b80`); disassembled ARMv7 exception vectors and self-relocation routine proving DRAM base `0x60000000`; traced mode switch to Thumb-2 at `kmain()` (`0x6002a944`); disassembled `fastboot_init()` at `0x60030018` and token verifier `0x6002eb00`; disassembled `flashing get_unlock_ability` (`0x60036518`) and `flashing unlock` (`0x60036648`); confirmed `frp` partition flag offset; produced artifact `artifacts/c49_bootloader_format_analysis.md`.
 - **Evidence & Artifact References:** `artifacts/c49_bootloader_format_analysis.md` (SHA-256: `907ba86703614d22a34e8366ad90dca75911b732642f2c51bc543deb7cc20cd2`).
@@ -266,9 +279,9 @@
 - **Evidence & Artifact References:** `artifacts/deeptesting_decompiled_analysis.md` (`ART-017`), `artifacts/README.md`.
 - **Result & Confidence Level:** Complete, 100% confidence.
 
-| **AUDIT-002** | Android root candidate assessment: shortlist, evidence reports, read-only experiments | **DONE** | AUDIT-001 | Audit |
+| **AUDIT-002** | Android root candidate assessment: shortlist, evidence reports, experiments | **DONE** | AUDIT-001 | Audit |
 | **E-001** | Kernel CVE backport analysis (exact CPH1859 C.50 boot.img) | **OPEN** | AUDIT-002 | Audit |
-| **E-002** | Live Binder/HIDL service enumeration (read-only ADB) | **OPEN** | AUDIT-002 | Audit |
+| **E-002** | Live Binder/HIDL service enumeration (ADB) | **OPEN** | AUDIT-002 | Audit |
 | **E-003** | Engineer HIDL service static caller-check analysis | **OPEN** | AUDIT-002 | Audit |
 
 ---
@@ -278,16 +291,16 @@
 ### AUDIT-002: Android Root Candidate Assessment
 
 - **Status:** DONE
-- **Objective:** Produce ranked Android root candidate shortlist, individual evidence reports, and safe read-only experiment plan for CPH1859 C.50 Android userspace/kernel root assessment.
+- **Objective:** Produce ranked Android root candidate shortlist, individual evidence reports, and safe experiment plan for CPH1859 C.50 Android userspace/kernel root assessment.
 - **Required Inputs:** C.49 extracted system/vendor/boot images, C.50 CPH1861 reference, vulnerability_matrix.json, live device properties.
 - **Actions Performed:**
   1. Extracted and analyzed C.49 kernel (4.4.146+, MT6771), vendor filesystem (sepolicy, init scripts, privileged binaries)
   2. Identified and documented 13 vulnerability findings in vulnerability_matrix.json (U-001–U-005, K-001–K-004, plus existing B/K/R/D entries)
   3. Produced ranked shortlist: K-001/K-002 (kernel LPE) > U-001 (Engineer HIDL) > U-002 (ATCI) > U-005 (diagnostic binaries)
   4. Produced individual evidence reports for K-001, U-001, U-002
-  5. Produced 7 safe read-only experiments (E-001 through E-007)
+  5. Produced 7 safe experiments (E-001 through E-007)
   6. Documented evidence gaps: exact C.50 kernel config/source, C.50 vendor filesystem, HIDL method analysis
-- **Evidence & Artifact References:** `artifacts/vulnerability_matrix.json` / `.md`, `artifacts/root_candidate_shortlist.md`, `artifacts/evidence_report_K-001_kernel_lpe.md`, `artifacts/evidence_report_U-001_engineer_hidl.md`, `artifacts/evidence_report_U-002_atci.md`, `artifacts/safe_readonly_experiments.md`
+- **Evidence & Artifact References:** `artifacts/vulnerability_matrix.json` / `.md`, `artifacts/root_candidate_shortlist.md`, `artifacts/evidence_report_K-001_kernel_lpe.md`, `artifacts/evidence_report_U-001_engineer_hidl.md`, `artifacts/evidence_report_U-002_atci.md`, `artifacts/safe_experiments.md`
 - **Result & Confidence Level:** Complete — no confirmed Android root path; strongest candidates are kernel LPE (evidence gap) and Engineer HIDL service (plausible surface)
 
 ### E-001: Kernel CVE Backport Analysis
@@ -301,10 +314,10 @@
 ### E-002: Live Binder/HIDL Service Enumeration
 
 - **Status:** OPEN
-- **Objective:** Enumerate exported Binder/HIDL services on live device via read-only ADB commands to determine untrusted_app reachability.
+- **Objective:** Enumerate exported Binder/HIDL services on live device via ADB commands to determine untrusted_app reachability.
 - **Required Inputs:** Live device connected via ADB.
 - **Actions Performed:** None yet — requires live device connection.
-- **Next Step:** `adb shell service list`, `adb shell dumpsys`, `adb shell pm list packages -s` (read-only).
+- **Next Step:** `adb shell service list`, `adb shell dumpsys`, `adb shell pm list packages -s`.
 
 ### E-003: Engineer HIDL Service Static Caller-Check Analysis
 
@@ -313,3 +326,17 @@
 - **Required Inputs:** C.49 vendor image (already available); C.50 vendor image (for comparison).
 - **Actions Performed:** SELinux policy rules documented in vulnerability_matrix.json U-001; init script and property access rules extracted.
 - **Next Step:** Disassemble service binary; enumerate IEngineer HIDL methods; analyze caller-check branches.
+
+---
+
+### AUDIT-003: Final Root Assessment & CVE-2026-43499 Feasibility
+
+- **Status:** DONE
+- **Objective:** Consolidate empirical rooting assessments (ADB root, BROM/preloader mode, APK sideloading, userland code execution) and evaluate feasibility of CVE-2026-43499 (GhostLock).
+- **Actions Performed:**
+  1. Ran preloader detection and device capability probes via ADB/mtkclient.
+  2. Confirmed Magisk sideloading does not yield root without patched boot image.
+  3. Evaluated CVE-2026-43499 against kernel 4.4.146+ / MT6771 architecture.
+  4. Generated comprehensive assessment reports and reproducible automation in `rootkit/`.
+- **Evidence & Artifact References:** `rootkit/FINAL_ROOT_ASSESSMENT.md`, `rootkit/CVE_2026_43499_FEASIBILITY.md`, `rootkit/README.md`.
+

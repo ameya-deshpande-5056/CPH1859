@@ -50,7 +50,7 @@ class TestCommandRunnerSafety(unittest.TestCase):
         res = self.runner.run(["fastboot", "flashing", "unlock"])
         self.assertFalse(res.is_safe)
         self.assertEqual(res.exit_code, -1)
-        self.assertIn("violates read-only safety", res.stderr)
+        self.assertIn("violates safety", res.stderr)
 
 
 if __name__ == "__main__":
